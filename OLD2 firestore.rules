@@ -1,0 +1,49 @@
+// firestore.rules — versione aggiornata con gestione piani
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow read: if isAuth() &&
+        resource.data.leaderId == request.auth.uid;
+      allow create: if isAuth() && request.auth.uid == uid;
+
+      // Proprietario aggiorna tutto TRANNE campi protetti da Stripe/backend
+      allow update: if isOwner(uid) &&
+        !request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasAny(["plan", "subscriptionStatus", "stripeCustomerId",
+                   "stripeSubscriptionId", "role"]);
+
+      // Leader aggiorna solo il livello dei suoi collaboratori
+      allow update: if isAuth() &&
+        resource.data.leaderId == request.auth.uid &&
+        request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(["level"]);
+
+      match /contacts/{contactId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /teams/{teamId} {
+      allow get:   if isAuth();
+      allow list:  if isAuth();
+      allow write: if isAuth() && request.auth.uid == teamId;
+    }
+
+    // Solo backend Stripe webhook
+    match /stripe_events/{eventId} {
+      allow read:  if false;
+      allow write: if false;
+    }
+  }
+}

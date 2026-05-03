@@ -1,0 +1,68 @@
+// firestore.rules
+// ─────────────────────────────────────────────────────────────
+//  Copia queste regole in:
+//  Firebase Console → Firestore Database → Rules
+// ─────────────────────────────────────────────────────────────
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Funzioni helper ──────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isLeader() {
+      return isAuth() && getUserRole() == "leader";
+    }
+
+    function isCollaboratore() {
+      return isAuth() && getUserRole() == "collaboratore";
+    }
+
+    // ── /users/{uid} ─────────────────────────────────────────
+    match /users/{uid} {
+      // Chiunque può leggere il proprio profilo
+      allow read: if isOwner(uid);
+
+      // Un leader può leggere i profili del suo team
+      allow read: if isLeader() &&
+        resource.data.leaderId == request.auth.uid;
+
+      // Scrittura solo su se stessi (tranne role — non modificabile)
+      allow update: if isOwner(uid) &&
+        !("role" in request.resource.data.diff(resource.data).affectedKeys());
+
+      // Creazione gestita dall'auth context (solo in registrazione)
+      allow create: if isAuth() && request.auth.uid == uid;
+
+      // Un leader può aggiornare il livello dei suoi collaboratori
+      allow update: if isLeader() &&
+        resource.data.leaderId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["level"]);
+
+      // ── Sotto-collezione contatti ─────────────────────────
+      match /contacts/{contactId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ── /teams/{teamId} ──────────────────────────────────────
+    match /teams/{teamId} {
+      // Tutti possono leggere (per verificare il codice invito)
+      allow read: if isAuth();
+
+      // Solo il leader proprietario può scrivere
+      allow write: if isAuth() && request.auth.uid == teamId;
+    }
+  }
+}
