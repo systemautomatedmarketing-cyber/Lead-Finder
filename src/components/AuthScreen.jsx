@@ -72,8 +72,8 @@ export default function AuthScreen() {
       <div style={{ width: "100%", maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 11, color: C.accent, fontFamily: "'DM Sans'", letterSpacing: 5, textTransform: "uppercase", marginBottom: 6 }}>Network Marketing</div>
-          <div style={{ fontSize: 48, fontWeight: 900, color: C.text, lineHeight: 1 }}>Sorgenta</div>
+          <div style={{ fontSize: 11, color: C.accent, fontFamily: "'DM Sans'", letterSpacing: 5, textTransform: "uppercase", marginBottom: 6 }}>Crescita Network Marketing</div>
+          <div style={{ fontSize: 48, fontWeight: 900, color: C.text, lineHeight: 1 }}>Lead Finder</div>
           <div style={{ fontSize: 14, color: C.muted, fontFamily: "'DM Sans'", marginTop: 6, fontStyle: "italic" }}>La tua crescita, ogni giorno</div>
         </div>
 
@@ -133,13 +133,13 @@ export default function AuthScreen() {
               <>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Registrati come Leader</div>
                 <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: C.muted, lineHeight: 1.5, padding: "10px 14px", background: "rgba(232,197,71,0.07)", border: `1px solid rgba(232,197,71,0.2)`, borderRadius: 10 }}>
-                  Per registrarti come leader ti serve il <strong style={{ color: C.accent }}>codice amministratore</strong> di Sorgenta.
+                  Per registrarti come leader ti serve il <strong style={{ color: C.accent }}>codice amministratore</strong> del network.
                 </div>
                 <input placeholder="Nome e cognome *" value={name} onChange={e => setName(e.target.value)} required />
                 <input type="email" placeholder="Email *" value={email} onChange={e => setEmail(e.target.value)} required />
                 <input type="password" placeholder="Password (min. 6 caratteri) *" value={password} onChange={e => setPassword(e.target.value)} required />
                 <input
-                  placeholder="Codice amministratore Sorgenta *"
+                  placeholder="Codice amministratore *"
                   value={leaderCode}
                   onChange={e => setLeaderCode(e.target.value)}
                   required

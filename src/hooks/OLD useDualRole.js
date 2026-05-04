@@ -41,6 +41,26 @@ export function useDualRole() {
     return unsub;
   }, [isLeader, userProfile?.uid]);
 
+  // ── Auto-promozione: si attiva quando arriva il primo membro
+  //    (es. qualcuno usa il suo codice invito)
+  useEffect(() => {
+    if (!userProfile?.uid || isLeader) return;
+    if (!userProfile?.inviteCode) return; // non ha ancora un codice
+
+    // Controlla se qualcuno è entrato con il suo codice
+    const q = query(
+      collection(db, "users"),
+      where("leaderId", "==", userProfile.uid),
+    );
+    const unsub = onSnapshot(q, async snap => {
+      if (!snap.empty && !userProfile?.isLeader) {
+        // Ha il suo primo collaboratore → promuovi automaticamente
+        await promoteToLeader(userProfile, "auto");
+      }
+    });
+    return unsub;
+  }, [userProfile?.uid, isLeader, userProfile?.inviteCode]);
+
   // ── Genera codice invito per futura promozione ────────────
   //    Viene generato quando il collaboratore vuole iniziare a reclutare
   const generateMyInviteCode = useCallback(async () => {
@@ -104,20 +124,6 @@ export function useDualRole() {
       setPromoting(false);
     }
   }, [userProfile?.uid]);
-
-  // ── Auto-promozione: si attiva DOPO la definizione di promoteToLeader ──
-  // Quando un collaboratore riceve il primo membro nel suo team, diventa leader
-  useEffect(() => {
-    if (!userProfile?.uid || isLeader || !userProfile?.inviteCode) return;
-    const q = query(collection(db, "users"), where("leaderId", "==", userProfile.uid));
-    const unsub = onSnapshot(q, async (snap) => {
-      if (!snap.empty) {
-        await promoteToLeader(userProfile, "auto");
-      }
-    });
-    return unsub;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile?.uid, isLeader, userProfile?.inviteCode]);
 
   // ── Toggle vista ───────────────────────────────────────────
   const switchView = useCallback((view) => {

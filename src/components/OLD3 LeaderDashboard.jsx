@@ -29,7 +29,7 @@ const Card = ({ children, style = {} }) => {
   );
 };
 
-export default function LeaderDashboard({ isEmbedded = false }) {
+export default function LeaderDashboard() {
   const { userProfile, logout } = useAuth();
   const { T } = useTheme();
   const { promoteToLeader, promoting } = useDualRole();
@@ -71,9 +71,38 @@ export default function LeaderDashboard({ isEmbedded = false }) {
     fire("Codice copiato! Condividilo con i tuoi collaboratori 📋");
   };
 
-  // Contenuto comune a entrambe le modalità (standalone e embedded)
-  const content = (
-    <div style={{ padding: isEmbedded ? "16px 16px 0" : "20px 16px 0" }} className="anim">
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, paddingBottom: 90, fontFamily: "'Playfair Display', Georgia, serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .anim { animation: fadeIn 0.25s ease; }
+        select { background: ${T.inputBg}; border: 1px solid ${T.border}; border-radius: 8px; color: ${T.text}; padding: 6px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; }
+        select option { background: ${T.surface}; }
+      `}</style>
+
+      {toast && (
+        <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: T.accent, color: "#0a0a0f", padding: "11px 24px", borderRadius: 50, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, zIndex: 999, whiteSpace: "nowrap" }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ padding: "28px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 11, color: T.accent, fontFamily: "'DM Sans'", letterSpacing: 4, textTransform: "uppercase", marginBottom: 4 }}>Dashboard Leader</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: T.text }}>{userProfile?.name}</div>
+          <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>Sorgenta Network</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ThemeToggle />
+          <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>Esci</button>
+        </div>
+      </div>
+
+      <div style={{ padding: "20px 16px 0" }} className="anim">
 
         {/* Codice invito */}
         <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -187,79 +216,14 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           </div>
         )}
       </div>
-);
-      {/* Bottom nav — solo in modalità standalone */}
-      {!isEmbedded && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", backdropFilter: "blur(12px)" }}>
-          <div style={{ fontFamily: "'DM Sans'", fontSize: 12, color: T.muted }}>Leader · {team.length} collaboratori</div>
-          <button onClick={logout} style={{ background: T.redBg, border: `1px solid ${T.red}44`, color: T.red, padding: "7px 16px", borderRadius: 50, fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-            Logout
-          </button>
-        </div>
-      )}
-//    </div>
-//  );
 
-  // ── Modalità embedded: solo contenuto senza wrapper full-page ─
-  if (isEmbedded) {
-    return (
-      <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
-          ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
-          @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-          .anim { animation: fadeIn 0.25s ease; }
-          select { background: ${T.inputBg}; border: 1px solid ${T.border}; border-radius: 8px; color: ${T.text}; padding: 6px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; }
-          select option { background: ${T.surface}; }
-        `}</style>
-        {toast && (
-          <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: T.accent, color: "#0a0a0f", padding: "11px 24px", borderRadius: 50, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, zIndex: 999, whiteSpace: "nowrap" }}>
-            {toast} 
-          </div>
-        )}
-        {/* Header compatto per la vista embedded */}
-        <div style={{ padding: "20px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 11, color: T.accent, fontFamily: "'DM Sans'", letterSpacing: 3, textTransform: "uppercase", marginBottom: 2 }}>👑 Il mio Team</div>
-{/*            <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>{userProfile?.name}</div> */}
-          </div>
-{/*          <ThemeToggle /> */}
-        </div>
-        {content}
-      </>
-    );
-  } 
-
-  // ── Modalità standalone: wrapper full-page con header completo ─
-  return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, paddingBottom: 90, fontFamily: "'Playfair Display', Georgia, serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-        .anim { animation: fadeIn 0.25s ease; }
-        select { background: ${T.inputBg}; border: 1px solid ${T.border}; border-radius: 8px; color: ${T.text}; padding: 6px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; }
-        select option { background: ${T.surface}; }
-      `}</style>
-      {toast && (
-        <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: T.accent, color: "#0a0a0f", padding: "11px 24px", borderRadius: 50, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, zIndex: 999, whiteSpace: "nowrap" }}>
-          {toast}
-        </div>
-      )}
-      {/* Header standalone completo */}
-      <div style={{ padding: "28px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 11, color: T.accent, fontFamily: "'DM Sans'", letterSpacing: 4, textTransform: "uppercase", marginBottom: 4 }}>Dashboard Leader</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: T.text }}>{userProfile?.name}</div>
-          <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>Sorgenta Network</div>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <ThemeToggle />
-          <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>Esci</button>
-        </div>
+      {/* Bottom nav */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", backdropFilter: "blur(12px)" }}>
+        <div style={{ fontFamily: "'DM Sans'", fontSize: 12, color: T.muted }}>Leader · {team.length} collaboratori</div>
+        <button onClick={logout} style={{ background: T.redBg, border: `1px solid ${T.red}44`, color: T.red, padding: "7px 16px", borderRadius: 50, fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          Logout
+        </button>
       </div>
-      {content}
     </div>
   );
 }

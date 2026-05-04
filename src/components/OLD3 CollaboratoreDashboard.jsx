@@ -11,9 +11,8 @@ import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { MISSIONS_BY_LEVEL, LEVELS } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import RoleToggle from "./RoleToggle";
-//import MiniLeaderDashboard from "./MiniLeaderDashboard";
+import MiniLeaderDashboard from "./MiniLeaderDashboard";
 import { useDualRole } from "../hooks/useDualRole";
-import LeaderDashboard from "./LeaderDashboard";
 
 const C = {
   bg: "#0a0a0f", surface: "#13131a", card: "#1a1a26",
@@ -68,32 +67,23 @@ export default function CollaboratoreDashboard() {
   const lvlInfo = LEVELS[level];
   const missions = MISSIONS_BY_LEVEL[level] || [];
 
-  // ── TUTTI gli hooks PRIMA di qualsiasi return condizionale ──
+  // ── Se è in vista leader → mostra MiniLeaderDashboard ───────
+  if (dualRole.hasBothRoles && dualRole.activeView === "leader") {
+    return <MiniLeaderDashboard onSwitchBack={() => dualRole.switchView("collaboratore")} />;
+  }
+
   const [tab, setTab]               = useState("dashboard");
   const [toast, setToast]           = useState(null);
   const [contacts, setContacts]     = useState([]);
   const [showMission, setShowMission] = useState(null);
   const [copiedId, setCopiedId]     = useState(null);
   const [showRecovery, setShowRecovery] = useState(false);
-  const [nc, setNc] = useState({ name: "", type: "lead", status: "lead", channel: "", note: "" });
 
   // Mostra banner recovery se settimana >= 3 e 0 clienti
   const showRecoveryBanner = (userProfile?.currentWeek || 1) >= 3 && (userProfile?.weeklyClients || 0) === 0;
 
-  // ── Ora è sicuro fare il return condizionale — tutti gli hooks sono già chiamati ──
-//  if (dualRole.hasBothRoles && dualRole.activeView === "leader") {
-//    return (
-//      <MiniLeaderDashboard
-//        onSwitchBack={() => dualRole.switchView("collaboratore")}
-//        teamMembers={dualRole.teamMembers}
-//        myInviteCode={dualRole.myInviteCode}
-//        uplineName={dualRole.uplineName}
-//        promoteToLeader={dualRole.promoteToLeader}
-//        promoting={dualRole.promoting}
-//        generateMyInviteCode={dualRole.generateMyInviteCode}
-//      />
-//    );
-//  }
+  // Form nuovo contatto
+  const [nc, setNc] = useState({ name: "", type: "lead", status: "lead", channel: "", note: "" });
 
   const fire = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -299,6 +289,14 @@ export default function CollaboratoreDashboard() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "6px 14px", fontFamily: "'DM Sans'", fontWeight: 700, color: T.accent, fontSize: 14 }}>⭐ {points}pt</div>
+          {dualRole.hasBothRoles && (
+            <RoleToggle
+              activeView={dualRole.activeView}
+              onSwitch={dualRole.switchView}
+              teamSize={dualRole.teamSize}
+              hasBothRoles={dualRole.hasBothRoles}
+            />
+          )}
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "6px 10px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>↩</button>
         </div>
@@ -622,11 +620,6 @@ export default function CollaboratoreDashboard() {
         )}
       </div>
 
-        {/* ── TAB TEAM — solo per collaboratori con isLeader=true ── */}
-        {dualRole.isLeader && tab === "team" && (
-          <LeaderDashboard isEmbedded={true} />
-        )}
-
       {/* Bottom Nav */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 8px", display: "flex", backdropFilter: "blur(12px)" }}>
         {[
@@ -634,7 +627,6 @@ export default function CollaboratoreDashboard() {
           { id: "missioni",  icon: "⚡", label: "Missioni" },
           { id: "contatti",  icon: "👥", label: "Contatti" },
           { id: "script",    icon: "💬", label: "Script" },
-          ...(dualRole.isLeader ? [{ id: "team", icon: "👑", label: "Team" }] : []),
         ].map(n => (
           <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>
