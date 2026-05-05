@@ -25,10 +25,7 @@ export function useDualRole() {
   const [promoting, setPromoting]     = useState(false);
 
   const isLeader      = !!userProfile?.isLeader;
-  // hasBothRoles: mostra il tab Team se è già leader OPPURE ha già generato il codice invito
-  // (così il tab appare subito dopo "Genera" senza aspettare il primo collaboratore)
-  const hasInviteCode = !!userProfile?.inviteCode;
-  const hasBothRoles  = userProfile?.role === "collaboratore" && (isLeader || hasInviteCode);
+  const hasBothRoles  = userProfile?.role === "collaboratore" && isLeader;
   const hasUpline     = !!userProfile?.leaderId;
 
   // ── Carica il team se è leader ────────────────────────────

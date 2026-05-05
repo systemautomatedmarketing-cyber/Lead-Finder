@@ -8,7 +8,7 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
-import { MISSIONS_BY_LEVEL, LEVELS } from "../data/missions";
+import { MISSIONS_BY_LEVEL, LEVELS, getPhase, TOTAL_WEEKS } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import NotificationSettings from "./NotificationSettings";
 import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
@@ -105,7 +105,7 @@ export default function CollaboratoreDashboard() {
   const weeklyClients    = userProfile?.weeklyClients || 0;
   const points           = userProfile?.points || 0;
   const completedMissions= userProfile?.completedMissions || [];
-  const weekGoal         = lvlInfo?.weeklyTarget?.[Math.min(currentWeek - 1, 6)] || currentWeek;
+  const weekGoal         = lvlInfo?.weeklyTarget?.[Math.min(currentWeek - 1, TOTAL_WEEKS - 1)] || currentWeek;
   const progress         = Math.min((weeklyClients / weekGoal) * 100, 100);
 
   // ── Contatti real-time da Firestore ──────────────────────
@@ -337,44 +337,17 @@ export default function CollaboratoreDashboard() {
         </div>
       </div>
 
-      {/* Banner "Diventa Leader" — mostra sempre dopo 5 missioni completate */}
-      {(userProfile?.completedMissions?.length || 0) >= 5 && (
+      {/* Banner "Diventa Leader" per chi può reclutare ma non è ancora leader */}
+      {!dualRole.isLeader && (userProfile?.completedMissions?.length || 0) >= 5 && (
         <div style={{ margin: "12px 16px 0", background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
           <span style={{ fontSize: 22 }}>👑</span>
           <div style={{ flex: 1 }}>
-            {userProfile?.inviteCode ? (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>
-                  Codice: <span style={{ letterSpacing: 2 }}>{userProfile.inviteCode}</span>
-                </div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>
-                  Condividilo e usa la tab 👑 <strong>Team</strong> per gestire il tuo sotto-team.
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>Pronto a reclutare?</div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Genera il codice invito — la tab Team apparirà subito.</div>
-              </>
-            )}
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>Pronto a reclutare?</div>
+            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Genera il tuo codice invito e inizia a costruire il tuo team.</div>
           </div>
-          {userProfile?.inviteCode ? (
-            <button
-              onClick={() => { navigator.clipboard?.writeText(userProfile.inviteCode); setToast("Codice copiato! 📋"); }}
-              style={{ background: T.surface, color: T.accent, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
-              Copia
-            </button>
-          ) : (
-            <button
-              onClick={async () => {
-                const c = await dualRole.generateMyInviteCode();
-                navigator.clipboard?.writeText(c);
-                setToast("Codice creato! Ora hai la tab 👑 Team 🎉");
-              }}
-              style={{ background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
-              Genera
-            </button>
-          )}
+          <button onClick={async () => { const c = await dualRole.generateMyInviteCode(); navigator.clipboard?.writeText(c); setToast("Codice generato e copiato! 🎉"); }} style={{ background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+            Genera
+          </button>
         </div>
       )}
 
@@ -433,22 +406,42 @@ export default function CollaboratoreDashboard() {
               )}
             </Card>
 
-            {/* Roadmap */}
+            {/* Roadmap 26 settimane con 3 fasi */}
             <Card style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>🗺 Percorso 7 Settimane</div>
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-                {Array.from({ length: 7 }, (_, i) => i + 1).map(w => {
-                  const t = lvlInfo?.weeklyTarget?.[w - 1] || w;
-                  return (
-                    <div key={w} style={{ flexShrink: 0, textAlign: "center", width: 54 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: "50%", margin: "0 auto 6px", background: w < currentWeek ? T.green : w === currentWeek ? T.accent : T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: w <= currentWeek ? "#0a0a0f" : T.muted }}>
-                        {w < currentWeek ? "✓" : w}
-                      </div>
-                      <div style={{ fontSize: 9, fontFamily: "'DM Sans'", color: w === currentWeek ? T.accent : T.muted }}>{t}/sett</div>
-                    </div>
-                  );
-                })}
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: T.text }}>🗺 Percorso 26 Settimane</div>
+                <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 10 }}>
+                  {getPhase(currentWeek).label} · Settimana {currentWeek} di {TOTAL_WEEKS}
               </div>
+
+              <div style={{ background: T.border, borderRadius: 50, height: 5, marginBottom: 12 }}>
+                <div style={{ height: 5, borderRadius: 50, background: `linear-gradient(90deg, ${T.accent}, ${T.accentSoft || T.accent})`, width: `${Math.min((currentWeek / TOTAL_WEEKS) * 100, 100)}%`, transition: "width 0.5s" }} />
+              </div>
+              {[
+                { n: 1, label: "Fase 1 — Fondamenta", range: [1, 7],   color: "#1A7A4A" },
+                { n: 2, label: "Fase 2 — Slancio",    range: [8, 16],  color: "#1A5FA8" },
+                { n: 3, label: "Fase 3 — Scalabilità", range: [17, 26], color: "#B8860B" },
+              ].map(phase => (
+                <div key={phase.n} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 9, fontFamily: "'DM Sans'", fontWeight: 700, color: phase.color, marginBottom: 5, textTransform: "uppercase", letterSpacing: 1 }}>
+                    {phase.label}
+                  </div>
+                  <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 2 }}>
+                    {Array.from({ length: phase.range[1] - phase.range[0] + 1 }, (_, i) => phase.range[0] + i).map(w => {
+                      const t = lvlInfo?.weeklyTarget?.[w - 1] || w;
+                      const isPast    = w < currentWeek;
+                      const isCurrent = w === currentWeek;
+                      return (
+                        <div key={w} style={{ flexShrink: 0, textAlign: "center", width: 32 }}>
+                          <div style={{ width: 26, height: 26, borderRadius: "50%", margin: "0 auto 2px", background: isPast ? phase.color : isCurrent ? T.accent : T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: isPast || isCurrent ? "#fff" : T.muted, boxShadow: isCurrent ? `0 0 0 2px ${T.accent}` : "none" }}>
+                            {isPast ? "✓" : w}
+                          </div>
+                          <div style={{ fontSize: 7, fontFamily: "'DM Sans'", color: isCurrent ? T.accent : T.muted }}>{t}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </Card>
 
             {/* Banner follow-up lead in scadenza */}
@@ -683,7 +676,7 @@ export default function CollaboratoreDashboard() {
       </div>
 
         {/* ── TAB TEAM — solo per collaboratori con isLeader=true ── */}
-        {(dualRole.isLeader || !!userProfile?.inviteCode) && tab === "team" && (
+        {dualRole.isLeader && tab === "team" && (
           <LeaderDashboard isEmbedded={true} />
         )}
 
@@ -694,7 +687,7 @@ export default function CollaboratoreDashboard() {
           { id: "missioni",  icon: "⚡", label: "Missioni" },
           { id: "contatti",  icon: "👥", label: "Contatti" },
           { id: "script",    icon: "💬", label: "Script" },
-          ...((dualRole.isLeader || !!userProfile?.inviteCode) ? [{ id: "team", icon: "👑", label: `Team${dualRole.teamSize > 0 ? ` (${dualRole.teamSize})` : ""}` }] : []),
+          ...(dualRole.isLeader ? [{ id: "team", icon: "👑", label: "Team" }] : []),
         ].map(n => (
           <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>

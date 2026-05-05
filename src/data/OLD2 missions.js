@@ -1,30 +1,10 @@
 // src/data/missions.js — Percorso completo 7 settimane × 4 livelli
 
 export const LEVELS = {
-  principiante: {
-    id:"principiante", label:"Principiante", icon:"🌱", color:"#1A7A4A",
-    desc:"Stai muovendo i primi passi. Azioni semplici, risultati concreti.",
-    phases: ["Fondamenta (Sett 1-7)", "Slancio e Sistema (Sett 8-16)", "Scalabilità (Sett 17-26)"],
-    weeklyTarget:[1,1,2,2,3,3,4, 4,5,5,4,5,5,6,6, 5,5,6,6,7,7,6,6,7,7,7],
-  },
-  in_crescita: {
-    id:"in_crescita", label:"In Crescita", icon:"🌿", color:"#1A5FA8",
-    desc:"Hai le basi. Ora espandi i canali e il ritmo.",
-    phases: ["Fondamenta (Sett 1-7)", "Espansione (Sett 8-16)", "Leadership (Sett 17-26)"],
-    weeklyTarget:[2,2,3,3,4,5,7, 5,6,6,5,6,6,7,7, 6,6,7,7,7,7,7,7,7,7,7],
-  },
-  avanzato: {
-    id:"avanzato", label:"Avanzato", icon:"🔥", color:"#C05A1A",
-    desc:"Sei operativo. Scala con eventi, referral e team building.",
-    phases: ["Fondamenta (Sett 1-7)", "Sistema (Sett 8-16)", "Autonomia (Sett 17-26)"],
-    weeklyTarget:[3,4,5,5,6,7,7, 6,7,7,6,7,7,7,7, 7,7,7,7,7,7,7,7,7,7,7],
-  },
-  pro: {
-    id:"pro", label:"Pro", icon:"⭐", color:"#B8860B",
-    desc:"Guidi e moltiplichi. Il tuo focus è il sistema, non solo le vendite.",
-    phases: ["Fondamenta (Sett 1-7)", "Moltiplicazione (Sett 8-16)", "Business Autonomo (Sett 17-26)"],
-    weeklyTarget:[4,5,6,7,7,7,7, 7,7,7,7,7,7,7,7, 7,7,7,7,7,7,7,7,7,7,7],
-  },
+  principiante: { id:"principiante", label:"Principiante", icon:"🌱", color:"#1A7A4A", desc:"Stai muovendo i primi passi. Azioni semplici, risultati concreti.", weeklyTarget:[1,1,2,2,3,3,4] },
+  in_crescita:  { id:"in_crescita",  label:"In Crescita",  icon:"🌿", color:"#1A5FA8", desc:"Hai le basi. Ora espandi i canali e il ritmo.", weeklyTarget:[2,2,3,3,4,5,7] },
+  avanzato:     { id:"avanzato",     label:"Avanzato",     icon:"🔥", color:"#C05A1A", desc:"Sei operativo. Scala con eventi, referral e team building.", weeklyTarget:[3,4,5,5,6,7,7] },
+  pro:          { id:"pro",          label:"Pro",           icon:"⭐", color:"#B8860B", desc:"Guidi e moltiplichi. Il tuo focus è il sistema, non solo le vendite.", weeklyTarget:[4,5,6,7,7,7,7] },
 };
 
 // Tempistiche follow-up ottimali basate su dati di conversione NM
@@ -34,13 +14,6 @@ export const FOLLOWUP_CYCLE = [
   { day:10, label:"Giorno 10 — Novità",        script:"Ciao [Nome]! Ci tenevo ad aggiornarti: [novità/promozione]. Ho pensato subito a te — senza impegno 😊",                               tone:"propositivo, gancio concreto" },
   { day:21, label:"Giorno 21 — Chiusura",      script:"Ciao [Nome]! Non voglio disturbarti ulteriormente. Rimango disponibile se mai ti interessasse in futuro. Buona settimana! 😊",           tone:"diretto, onesto, rispettoso" },
 ];
-
-import {
-  MISSIONS_PRINCIPIANTE_F2, MISSIONS_PRINCIPIANTE_F3,
-  MISSIONS_IN_CRESCITA_F2,  MISSIONS_IN_CRESCITA_F3,
-  MISSIONS_AVANZATO_F2,     MISSIONS_AVANZATO_F3,
-  MISSIONS_PRO_F2,          MISSIONS_PRO_F3,
-} from "./missions_fase2_3.js";
 
 const M = (id, week, cat, title, obj, actions, script, ch, pts, kpi, tip, why, followup=false, fday=null) => ({
   id, week, category:cat, title, objective:obj, actions, script, channel:ch, points:pts, kpi, tip, why, lead_action:followup, followup_day:fday,
@@ -320,18 +293,8 @@ export const MISSIONS_PRO = [
 ];
 
 export const MISSIONS_BY_LEVEL = {
-  principiante: [...MISSIONS_PRINCIPIANTE, ...MISSIONS_PRINCIPIANTE_F2, ...MISSIONS_PRINCIPIANTE_F3],
-  in_crescita:  [...MISSIONS_IN_CRESCITA,  ...MISSIONS_IN_CRESCITA_F2,  ...MISSIONS_IN_CRESCITA_F3],
-  avanzato:     [...MISSIONS_AVANZATO,     ...MISSIONS_AVANZATO_F2,     ...MISSIONS_AVANZATO_F3],
-  pro:          [...MISSIONS_PRO,          ...MISSIONS_PRO_F2,          ...MISSIONS_PRO_F3],
+  principiante: MISSIONS_PRINCIPIANTE,
+  in_crescita:  MISSIONS_IN_CRESCITA,
+  avanzato:     MISSIONS_AVANZATO,
+  pro:          MISSIONS_PRO,
 };
-
-// Helper: settimane totali per livello
-export const TOTAL_WEEKS = 26;
-
-// Helper: fase della settimana
-export function getPhase(week) {
-  if (week <= 7)  return { n: 1, label: "Fase 1 — Fondamenta",   color: "#1A7A4A" };
-  if (week <= 16) return { n: 2, label: "Fase 2 — Slancio",      color: "#1A5FA8" };
-  return           { n: 3, label: "Fase 3 — Scalabilità",  color: "#B8860B" };
-}

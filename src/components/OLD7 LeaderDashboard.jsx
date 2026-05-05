@@ -55,11 +55,10 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   // ── Carica i collaboratori del team in tempo reale ────────
   useEffect(() => {
     if (!userProfile?.uid) return;
-    // Carica TUTTI i membri con questo leaderId: collaboratori normali
-    // + leader collegati via UplineConnect (role="leader" con leaderId impostato)
     const q = query(
       collection(db, "users"),
-      where("leaderId", "==", userProfile.uid)
+      where("leaderId", "==", userProfile.uid),
+      where("role", "==", "collaboratore")
     );
     const unsub = onSnapshot(q, (snap) => {
       setTeam(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -87,31 +86,8 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   // ── KPI aggregati ─────────────────────────────────────────
   const totalClients  = team.reduce((s, m) => s + (m.weeklyClients || 0), 0);
   const totalMissions = team.reduce((s, m) => s + (m.completedMissions?.length || 0), 0);
-
-  // Status membro: "risk" | "top" | "new" | "ok"
-  // A Rischio: da mercoledì + sotto 50% obiettivo settimanale
-  // Top:       raggiunto/superato obiettivo OPPURE vicino + molte missioni
-  // Nuovo:     registrato da meno di 7 giorni (non ancora valutabile)
-  const _now         = new Date();
-  const _day         = _now.getDay(); // 0=dom 1=lun 2=mar 3=mer 4=gio 5=ven 6=sab
-  const _wedOrLater  = _day >= 3 || _day === 0; // mercoledì, giovedì, venerdì, sabato, domenica
-
-  const getMemberStatus = (m) => {
-    const goal    = m.currentWeek || 1;
-    const clients = m.weeklyClients || 0;
-    const mCount  = (m.completedMissions || []).length;
-    const joined  = m.createdAt?.toDate?.() || (m.createdAt ? new Date(m.createdAt) : null);
-    const isNew   = joined && (_now - joined) < 7 * 24 * 60 * 60 * 1000;
-
-    if (isNew) return "new";
-    if (clients >= goal) return "top";                              // ha raggiunto obiettivo
-    if (mCount >= 3 && clients >= goal * 0.8) return "top";       // quasi obiettivo + molto attivo
-    if (_wedOrLater && clients < goal * 0.5) return "risk";        // da mercoledì + sotto 50%
-    return "ok";
-  };
-
-  const atRisk        = team.filter(m => getMemberStatus(m) === "risk");
-  const topPerformers = team.filter(m => getMemberStatus(m) === "top");
+  const atRisk        = team.filter(m => (m.weeklyClients || 0) < (m.currentWeek || 1) * 0.5);
+  const topPerformers = team.filter(m => (m.weeklyClients || 0) >= (m.currentWeek || 1));
 
   // ── Aggiorna livello collaboratore ────────────────────────
   const updateLevel = async (uid, newLevel) => {

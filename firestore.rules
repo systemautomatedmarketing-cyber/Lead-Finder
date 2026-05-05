@@ -1,4 +1,3 @@
-// firestore.rules — con supporto doppio ruolo collaboratore/leader
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -7,42 +6,47 @@ service cloud.firestore {
     function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
 
     match /users/{uid} {
-      allow read: if isOwner(uid);
+      // Lettura: il proprietario, il suo upline diretto, o qualcuno il cui UID è il leaderId
+      allow read: if isAuth() && (
+        request.auth.uid == uid ||
+        resource.data.leaderId == request.auth.uid
+      );
 
-      // Leader classico legge i suoi collaboratori
-      allow read: if isAuth() && resource.data.leaderId == request.auth.uid;
+      // Creazione: solo se autenticato e uid coincide
+      allow create: if isOwner(uid);
 
-      // Un collaboratore-leader legge anche i propri collaboratori
-      allow read: if isAuth() && resource.data.leaderId == request.auth.uid;
-
-      allow create: if isAuth() && request.auth.uid == uid;
-
-      // Proprietario aggiorna tutto TRANNE i campi protetti da Stripe/backend
+      // Aggiornamento: proprietario su campi non protetti
       allow update: if isOwner(uid) &&
         !request.resource.data.diff(resource.data)
           .affectedKeys()
           .hasAny(["plan", "subscriptionStatus", "stripeCustomerId",
                    "stripeSubscriptionId", "role"]);
 
-      // Il leader (classico o collaboratore-leader) aggiorna livello e isLeader dei suoi
+      // Il leader può aggiornare livello e flag isLeader dei suoi collaboratori
       allow update: if isAuth() &&
         resource.data.leaderId == request.auth.uid &&
         request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly(["level", "isLeader", "inviteCode",
-                                   "leaderSince", "promotedBy", "promotionTrigger"]);
+          .affectedKeys().hasOnly([
+            "level", "isLeader", "inviteCode", "leaderSince",
+            "promotedBy", "promotionTrigger"
+          ]);
 
       match /contacts/{contactId} {
         allow read, write: if isOwner(uid);
       }
     }
 
+    // Teams: leggibile da tutti gli autenticati (necessario per ricerca codice invito)
+    // Scrivibile solo dal leader del team o dal proprietario
     match /teams/{teamId} {
-      allow get:   if isAuth();
-      allow list:  if isAuth();
-      // Sia il leader classico che il collaboratore-leader possono scrivere il proprio team
-      allow write: if isAuth() && request.auth.uid == teamId;
+      allow read:   if isAuth();
+      allow write:  if isAuth() && (
+        request.auth.uid == teamId ||
+        (resource != null && resource.data.leaderId == request.auth.uid)
+      );
     }
 
+    // Stripe events: solo backend
     match /stripe_events/{eventId} {
       allow read:  if false;
       allow write: if false;

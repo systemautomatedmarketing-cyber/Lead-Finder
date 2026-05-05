@@ -1,7 +1,12 @@
 // src/components/AuthScreen.jsx
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useTheme, ThemeToggle } from "../context/ThemeContext";
+
+const C = {
+  bg: "#0a0a0f", surface: "#13131a", card: "#1a1a26",
+  border: "#2a2a3d", accent: "#e8c547", text: "#f0f0f5",
+  muted: "#6b6b8a", green: "#3ecf8e", red: "#f87171",
+};
 
 const LEVELS_INFO = [
   { id: "principiante", icon: "🌱", label: "Principiante", desc: "Sto iniziando ora — ho bisogno di guida passo per passo" },
@@ -12,8 +17,6 @@ const LEVELS_INFO = [
 
 export default function AuthScreen() {
   const { login, registerLeader, registerCollaboratore } = useAuth();
-  const { T, isDark, toggle } = useTheme();
-  const C = T; // alias per compatibilità con il codice esistente
   const [mode, setMode]     = useState("login"); // login | register_collab | register_leader
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,26 +54,21 @@ export default function AuthScreen() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        input, select { background: ${C.surface}; border: 1px solid ${C.border}; border-radius: 10px; color: ${C.text}; padding: 12px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; width: 100%; outline: none; transition: border 0.2s; }
-        input:focus, select:focus { border-color: ${C.accent}; }
-        input::placeholder { color: ${C.muted}; }
-        select option { background: ${C.surface}; color: ${C.text}; }
-        .tab { flex: 1; padding: 10px; text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid ${C.border}; background: ${C.surface}; transition: all 0.15s; color: ${C.muted}; }
-        .tab.active { background: ${C.accentBg}; border-color: ${C.accentBorder}; color: ${C.accent}; }
+        input, select { background: #13131a; border: 1px solid #2a2a3d; border-radius: 10px; color: #f0f0f5; padding: 12px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; width: 100%; outline: none; transition: border 0.2s; }
+        input:focus, select:focus { border-color: #e8c547; }
+        input::placeholder { color: #6b6b8a; }
+        select option { background: #13131a; }
+        .tab { flex: 1; padding: 10px; text-align: center; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #2a2a3d; transition: all 0.15s; color: #6b6b8a; }
+        .tab.active { background: rgba(232,197,71,0.1); border-color: rgba(232,197,71,0.4); color: #e8c547; }
         .tab:first-child { border-radius: 10px 0 0 10px; }
         .tab:last-child { border-radius: 0 10px 10px 0; }
         .tab:not(:first-child) { border-left: none; }
-        .level-card { border: 1px solid ${C.border}; background: ${C.surface}; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 10px; }
-        .level-card.selected { border-color: ${C.accent}; background: ${C.accentBg}; }
-        .btn-primary { width: 100%; background: ${C.accent}; color: #0a0a0f; border: none; border-radius: 50px; padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+        .level-card { border: 1px solid #2a2a3d; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 10px; }
+        .level-card.selected { border-color: rgba(232,197,71,0.6); background: rgba(232,197,71,0.08); }
+        .btn-primary { width: 100%; background: #e8c547; color: #0a0a0f; border: none; border-radius: 50px; padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .link-btn { background: none; border: none; color: ${C.accent}; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; text-decoration: underline; }
+        .link-btn { background: none; border: none; color: #e8c547; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; text-decoration: underline; }
       `}</style>
-
-      {/* Toggle tema — angolo in alto a destra */}
-      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 10 }}>
-        <ThemeToggle />
-      </div>
 
       <div style={{ width: "100%", maxWidth: 400 }}>
         {/* Logo */}
@@ -163,7 +161,7 @@ export default function AuthScreen() {
             )}
 
             {error && (
-              <div style={{ background: C.redBg || "rgba(248,113,113,0.1)", border: `1px solid ${C.red || "#f87171"}44`, borderRadius: 10, padding: "10px 14px", fontSize: 13, fontFamily: "'DM Sans'", color: C.red || "#f87171", lineHeight: 1.5 }}>
+              <div style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontFamily: "'DM Sans'", color: C.red, lineHeight: 1.5 }}>
                 ⚠️ {error}
               </div>
             )}

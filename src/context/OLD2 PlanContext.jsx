@@ -10,8 +10,7 @@ import {
 } from "../data/plans";
 
 // ── Stripe publishable key (sostituisci con la tua) ───────────
-// Chiave Stripe — imposta VITE_STRIPE_PUBLISHABLE_KEY nel file .env
-const STRIPE_PK = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder";
+const STRIPE_PK = "pk_live_XXXXXXXXXXXXXXXXXXXXXXXXXX";
 // Per test usa: "pk_test_XXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 const PlanContext = createContext(null);
@@ -50,11 +49,8 @@ export function PlanProvider({ children }) {
       }
 
       // Chiama la Firebase Function per creare la Checkout Session
-      // URL della Firebase Cloud Function (imposta VITE_FUNCTIONS_BASE_URL nel .env)
-      const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL
-        || `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
       const resp = await fetch(
-        `${FUNCTIONS_URL}/createCheckoutSession`,
+        `https://${import.meta.env.VITE_FIREBASE_PROJECT_ID}-default-rtdb.europe-west1.firebasedatabase.app/createCheckoutSession`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

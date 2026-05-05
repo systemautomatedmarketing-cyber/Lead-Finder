@@ -3,10 +3,10 @@
 
 // ── ID prezzi Stripe (sostituisci con i tuoi dopo la creazione su dashboard.stripe.com) ──
 export const STRIPE_PRICES = {
-  collaboratore_pro_monthly: "price_XXXXXXXXXX",   // €9.99/mese
-  collaboratore_pro_yearly:  "price_XXXXXXXXXX",   // €89.99/anno (~25% sconto)
-  leader_pro_monthly:        "price_XXXXXXXXXX",   // €24.99/mese
-  leader_pro_yearly:         "price_XXXXXXXXXX",   // €219.99/anno (~27% sconto)
+  collaboratore_pro_monthly: "price_1TTNXeF3HfLtoUWm95wqQjb0",   // €9.99/mese
+  collaboratore_pro_yearly:  "price_1TTNYBF3HfLtoUWmwAL8ASlp",   // €89.99/anno (~25% sconto)
+  leader_pro_monthly:        "price_1TTNZwF3HfLtoUWmiiJX16Tq",   // €24.99/mese
+  leader_pro_yearly:         "price_1TTNaHF3HfLtoUWmkzJriJ32",   // €219.99/anno (~27% sconto)
 };
 
 export const TRIAL_DAYS = 14;

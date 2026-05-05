@@ -10,8 +10,6 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { MISSIONS_BY_LEVEL, LEVELS } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
-import NotificationSettings from "./NotificationSettings";
-import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
 import RoleToggle from "./RoleToggle";
 //import MiniLeaderDashboard from "./MiniLeaderDashboard";
 import { useDualRole } from "../hooks/useDualRole";
@@ -76,8 +74,7 @@ export default function CollaboratoreDashboard() {
   const [contacts, setContacts]     = useState([]);
   const [showMission, setShowMission] = useState(null);
   const [copiedId, setCopiedId]     = useState(null);
-  const [showRecovery, setShowRecovery]       = useState(false);
-  const [showNotifSettings, setShowNotifSettings] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const [nc, setNc] = useState({ name: "", type: "lead", status: "lead", channel: "", note: "" });
 
   // Mostra banner recovery se settimana >= 3 e 0 clienti
@@ -116,28 +113,6 @@ export default function CollaboratoreDashboard() {
     });
     return unsub;
   }, [uid]);
-
-  // ── Scheduler notifiche follow-up ─────────────────────────
-  useEffect(() => {
-    if (!contacts.length || !userProfile?.notificationsEnabled) return;
-    const cleanup = setupFollowupScheduler(
-      contacts,
-      userProfile?.name || "",
-      (dueContacts) => {
-        // Il banner nell'app è già gestito da leadsNeedingFollowup
-        // Qui gestiamo solo la notifica browser
-      }
-    );
-    return cleanup;
-  }, [contacts, userProfile?.notificationsEnabled]);
-
-  // ── Notifica quando si raggiunge l'obiettivo ───────────────
-  useEffect(() => {
-    if (weeklyClients >= weekGoal && weekGoal > 0 && userProfile?.notificationsEnabled) {
-      notifyWeeklyGoalReached(currentWeek);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weeklyClients, weekGoal]);
 
   // ── Completa missione → salva su Firestore ────────────────
   const completeMission = useCallback(async (mission) => {
@@ -230,7 +205,6 @@ export default function CollaboratoreDashboard() {
       )}
 
       {showRecovery && <RecoverySystem onClose={() => setShowRecovery(false)} userProfile={userProfile} />}
-      {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} />}
 
       {/* Mission Modal */}
       {showMission && (
@@ -325,56 +299,22 @@ export default function CollaboratoreDashboard() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "6px 14px", fontFamily: "'DM Sans'", fontWeight: 700, color: T.accent, fontSize: 14 }}>⭐ {points}pt</div>
-          <button
-            onClick={() => setShowNotifSettings(true)}
-            title="Impostazioni notifiche"
-            style={{ background: userProfile?.notificationsEnabled ? T.accentBg : "none", border: `1px solid ${userProfile?.notificationsEnabled ? T.accentBorder : T.border}`, borderRadius: 50, padding: "6px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
-          >
-            {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
-          </button>
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "6px 10px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>↩</button>
         </div>
       </div>
 
-      {/* Banner "Diventa Leader" — mostra sempre dopo 5 missioni completate */}
-      {(userProfile?.completedMissions?.length || 0) >= 5 && (
+      {/* Banner "Diventa Leader" per chi può reclutare ma non è ancora leader */}
+      {!dualRole.isLeader && (userProfile?.completedMissions?.length || 0) >= 5 && (
         <div style={{ margin: "12px 16px 0", background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
           <span style={{ fontSize: 22 }}>👑</span>
           <div style={{ flex: 1 }}>
-            {userProfile?.inviteCode ? (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>
-                  Codice: <span style={{ letterSpacing: 2 }}>{userProfile.inviteCode}</span>
-                </div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>
-                  Condividilo e usa la tab 👑 <strong>Team</strong> per gestire il tuo sotto-team.
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>Pronto a reclutare?</div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Genera il codice invito — la tab Team apparirà subito.</div>
-              </>
-            )}
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>Pronto a reclutare?</div>
+            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Genera il tuo codice invito e inizia a costruire il tuo team.</div>
           </div>
-          {userProfile?.inviteCode ? (
-            <button
-              onClick={() => { navigator.clipboard?.writeText(userProfile.inviteCode); setToast("Codice copiato! 📋"); }}
-              style={{ background: T.surface, color: T.accent, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
-              Copia
-            </button>
-          ) : (
-            <button
-              onClick={async () => {
-                const c = await dualRole.generateMyInviteCode();
-                navigator.clipboard?.writeText(c);
-                setToast("Codice creato! Ora hai la tab 👑 Team 🎉");
-              }}
-              style={{ background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
-              Genera
-            </button>
-          )}
+          <button onClick={async () => { const c = await dualRole.generateMyInviteCode(); navigator.clipboard?.writeText(c); setToast("Codice generato e copiato! 🎉"); }} style={{ background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+            Genera
+          </button>
         </div>
       )}
 
@@ -683,7 +623,7 @@ export default function CollaboratoreDashboard() {
       </div>
 
         {/* ── TAB TEAM — solo per collaboratori con isLeader=true ── */}
-        {(dualRole.isLeader || !!userProfile?.inviteCode) && tab === "team" && (
+        {dualRole.isLeader && tab === "team" && (
           <LeaderDashboard isEmbedded={true} />
         )}
 
@@ -694,7 +634,7 @@ export default function CollaboratoreDashboard() {
           { id: "missioni",  icon: "⚡", label: "Missioni" },
           { id: "contatti",  icon: "👥", label: "Contatti" },
           { id: "script",    icon: "💬", label: "Script" },
-          ...((dualRole.isLeader || !!userProfile?.inviteCode) ? [{ id: "team", icon: "👑", label: `Team${dualRole.teamSize > 0 ? ` (${dualRole.teamSize})` : ""}` }] : []),
+          ...(dualRole.isLeader ? [{ id: "team", icon: "👑", label: "Team" }] : []),
         ].map(n => (
           <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>

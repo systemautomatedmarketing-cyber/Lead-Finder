@@ -1,14 +1,8 @@
 // src/components/LeaderDashboard.jsx
 import { useState, useEffect } from "react";
-import WeeklyReport from "./WeeklyReport";
-import LeaderMissions from "./LeaderMissions";
-import UplineConnect from "./UplineConnect";
-import NotificationSettings from "./NotificationSettings";
-import { exportTeamCSV } from "../utils/exportCSV";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { usePlan } from "../context/PlanContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { useDualRole } from "../hooks/useDualRole";
 
@@ -37,29 +31,24 @@ const Card = ({ children, style = {} }) => {
 
 export default function LeaderDashboard({ isEmbedded = false }) {
   const { userProfile, logout } = useAuth();
-  const { can }                 = usePlan();
   const { T } = useTheme();
   const { promoteToLeader, promoting } = useDualRole();
-  const [team, setTeam]         = useState([]);
-  const [tab, setTab]           = useState("team");
-  const [toast, setToast]       = useState(null);
-  const [selectedMember, setSelectedMember]       = useState(null);
-  const [showReport, setShowReport]               = useState(false);
-  const [expandedLeader, setExpandedLeader]       = useState(null);
-  const [showUplineConnect, setShowUplineConnect] = useState(false);
-  const [showNotifSettings, setShowNotifSettings] = useState(false);
-  const [deepTeam, setDeepTeam]             = useState([]);
+  const [team, setTeam]             = useState([]);
+  const [deepTeam, setDeepTeam]     = useState([]);
+  const [tab, setTab]               = useState("team");
+  const [toast, setToast]           = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [expandedLeader, setExpandedLeader] = useState(null);
 
   const fire = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
-  // ── Carica i collaboratori del team in tempo reale ────────
+  // ── Carica i collaboratori diretti (livello 1) ────────────
   useEffect(() => {
     if (!userProfile?.uid) return;
-    // Carica TUTTI i membri con questo leaderId: collaboratori normali
-    // + leader collegati via UplineConnect (role="leader" con leaderId impostato)
     const q = query(
       collection(db, "users"),
-      where("leaderId", "==", userProfile.uid)
+      where("leaderId", "==", userProfile.uid),
+      where("role", "==", "collaboratore")
     );
     const unsub = onSnapshot(q, (snap) => {
       setTeam(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -67,16 +56,16 @@ export default function LeaderDashboard({ isEmbedded = false }) {
     return unsub;
   }, [userProfile?.uid]);
 
-  // ── Carica collaboratori di 2° livello ─────────────────────
+  // ── Carica i collaboratori dei neo-leader (livello 2) ─────
   useEffect(() => {
     if (!team.length) { setDeepTeam([]); return; }
-    const subLeaderIds = team.filter(m => m.isLeader).map(m => m.uid || m.id).filter(Boolean);
+    const subLeaderIds = team.filter(m => m.isLeader).map(m => m.uid || m.id);
     if (!subLeaderIds.length) { setDeepTeam([]); return; }
     const batches = [];
     for (let i = 0; i < subLeaderIds.length; i += 30) batches.push(subLeaderIds.slice(i, i + 30));
     const unsubs = batches.map(batch => {
-      const q2 = query(collection(db, "users"), where("leaderId", "in", batch));
-      return onSnapshot(q2, snap => {
+      const q = query(collection(db, "users"), where("leaderId", "in", batch));
+      return onSnapshot(q, snap => {
         const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setDeepTeam(prev => [...prev.filter(d => !batch.includes(d.leaderId)), ...docs]);
       });
@@ -87,31 +76,8 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   // ── KPI aggregati ─────────────────────────────────────────
   const totalClients  = team.reduce((s, m) => s + (m.weeklyClients || 0), 0);
   const totalMissions = team.reduce((s, m) => s + (m.completedMissions?.length || 0), 0);
-
-  // Status membro: "risk" | "top" | "new" | "ok"
-  // A Rischio: da mercoledì + sotto 50% obiettivo settimanale
-  // Top:       raggiunto/superato obiettivo OPPURE vicino + molte missioni
-  // Nuovo:     registrato da meno di 7 giorni (non ancora valutabile)
-  const _now         = new Date();
-  const _day         = _now.getDay(); // 0=dom 1=lun 2=mar 3=mer 4=gio 5=ven 6=sab
-  const _wedOrLater  = _day >= 3 || _day === 0; // mercoledì, giovedì, venerdì, sabato, domenica
-
-  const getMemberStatus = (m) => {
-    const goal    = m.currentWeek || 1;
-    const clients = m.weeklyClients || 0;
-    const mCount  = (m.completedMissions || []).length;
-    const joined  = m.createdAt?.toDate?.() || (m.createdAt ? new Date(m.createdAt) : null);
-    const isNew   = joined && (_now - joined) < 7 * 24 * 60 * 60 * 1000;
-
-    if (isNew) return "new";
-    if (clients >= goal) return "top";                              // ha raggiunto obiettivo
-    if (mCount >= 3 && clients >= goal * 0.8) return "top";       // quasi obiettivo + molto attivo
-    if (_wedOrLater && clients < goal * 0.5) return "risk";        // da mercoledì + sotto 50%
-    return "ok";
-  };
-
-  const atRisk        = team.filter(m => getMemberStatus(m) === "risk");
-  const topPerformers = team.filter(m => getMemberStatus(m) === "top");
+  const atRisk        = team.filter(m => (m.weeklyClients || 0) < (m.currentWeek || 1) * 0.5);
+  const topPerformers = team.filter(m => (m.weeklyClients || 0) >= (m.currentWeek || 1));
 
   // ── Aggiorna livello collaboratore ────────────────────────
   const updateLevel = async (uid, newLevel) => {
@@ -127,24 +93,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   // Contenuto comune a entrambe le modalità (standalone e embedded)
   const content = (
     <div style={{ padding: isEmbedded ? "16px 16px 0" : "20px 16px 0" }} className="anim">
-
-        {/* Azioni rapide — Report e Export */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          <button
-            onClick={() => setShowReport(true)}
-            style={{ flex: 1, background: T.accentBg, border: `1px solid ${T.accentBorder}`, color: T.accent, borderRadius: 50, padding: "10px 0", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-          >
-            📊 Report Settimanale
-          </button>
-          {can.exportCSV() && (
-            <button
-              onClick={() => { exportTeamCSV(team, userProfile?.name || "Leader"); fire("CSV scaricato! 📥"); }}
-              style={{ flex: 1, background: T.surface, border: `1px solid ${T.border}`, color: T.text, borderRadius: 50, padding: "10px 0", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-            >
-              📥 Esporta CSV
-            </button>
-          )}
-        </div>
 
         {/* Codice invito */}
         <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -177,11 +125,11 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         {/* Tab nav */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           {[
-            { id: "team",     label: "👥 Team" },
-            { id: "rete",     label: `🌐 Rete (${deepTeam.length})` },
-            { id: "rischio",  label: `⚠️ A Rischio (${atRisk.length})` },
-            { id: "top",      label: `⭐ Top (${topPerformers.length})` },
-            { id: "missioni", label: "⚡ Missioni" },
+            { id: "team",    label: "👥 Team" },
+            { id: "rete",    label: `🌐 Rete (${deepTeam.length})` },
+            { id: "rischio", label: `⚠️ A Rischio (${atRisk.length})` },
+            { id: "top",     label: `⭐ Top (${topPerformers.length})` },
+            { id: "azioni",  label: "💡 Azioni" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
               {t.label}
@@ -229,69 +177,93 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           </div>
         )}
 
-        {/* 🌐 RETE — collaboratori di 2° livello */}
+        {/* 🌐 RETE — collaboratori dei neo-leader (livello 2) */}
         {tab === "rete" && (
           <div>
             {deepTeam.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 0", color: T.muted, fontFamily: "'DM Sans'" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🌐</div>
-                <div style={{ lineHeight: 1.8 }}>Nessun collaboratore di secondo livello ancora.<br />
-                  <span style={{ fontSize: 12 }}>Appariranno quando i tuoi neo-leader inizieranno a reclutare.</span>
+                <div style={{ lineHeight: 1.8 }}>
+                  Nessun collaboratore di secondo livello ancora.<br />
+                  <span style={{ fontSize: 12 }}>Appariranno qui quando i tuoi neo-leader inizieranno a reclutare.</span>
                 </div>
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 14, lineHeight: 1.6, padding: "10px 14px", background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 10 }}>
-                  💡 Questi sono i collaboratori dei tuoi neo-leader. Usa il bottone 📩 per segnalare situazioni critiche al loro leader.
+                <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 16, lineHeight: 1.6, padding: "10px 14px", background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 10 }}>
+                  💡 Questi sono i collaboratori dei tuoi neo-leader. Puoi vedere la loro situazione e contattare il loro leader se serve supporto.
                 </div>
+                {/* Raggruppa per neo-leader */}
                 {team.filter(m => m.isLeader).map(leader => {
-                  const subs = deepTeam.filter(d => d.leaderId === (leader.uid || leader.id));
-                  if (!subs.length) return null;
-                  const isExp = expandedLeader === (leader.uid || leader.id);
-                  const subRisk = subs.filter(m => (m.weeklyClients||0) < (m.currentWeek||1)*0.5);
+                  const memberSubs = deepTeam.filter(d => d.leaderId === (leader.uid || leader.id));
+                  if (!memberSubs.length) return null;
+                  const isExpanded = expandedLeader === (leader.uid || leader.id);
+                  const subAtRisk = memberSubs.filter(m => (m.weeklyClients || 0) < (m.currentWeek || 1) * 0.5);
                   return (
-                    <div key={leader.id} style={{ marginBottom: 14 }}>
-                      <div onClick={() => setExpandedLeader(isExp ? null : (leader.uid||leader.id))}
-                        style={{ background: T.card, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: isExp ? 8 : 0 }}>
+                    <div key={leader.id} style={{ marginBottom: 16 }}>
+                      {/* Header neo-leader */}
+                      <div
+                        onClick={() => setExpandedLeader(isExpanded ? null : (leader.uid || leader.id))}
+                        style={{ background: T.card, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: isExpanded ? 8 : 0 }}
+                      >
                         <div style={{ width: 36, height: 36, borderRadius: "50%", background: T.accentBg, border: `2px solid ${T.accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: T.accent, flexShrink: 0, fontFamily: "'DM Sans'" }}>
-                          {(leader.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase()}
+                          {(leader.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>👑 {leader.name}
-                            <span style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted, marginLeft: 8 }}>· {subs.length} collaboratori</span>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>
+                            👑 {leader.name}
+                            <span style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted, marginLeft: 8 }}>· {memberSubs.length} collaboratori</span>
                           </div>
-                          {subRisk.length > 0 && <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.red||"#C0392B", marginTop: 2 }}>⚠️ {subRisk.length} a rischio nel suo team</div>}
+                          {subAtRisk.length > 0 && (
+                            <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.red, marginTop: 2 }}>
+                              ⚠️ {subAtRisk.length} a rischio nel suo team
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          {subRisk.length > 0 && (
-                            <button onClick={e => { e.stopPropagation(); const msg=`Ciao ${leader.name}! Ho visto che ${subRisk.map(m=>m.name).join(", ")} ${subRisk.length===1?"è":"sono"} indietro con gli obiettivi. Come posso aiutarti?`; navigator.clipboard?.writeText(msg); fire("Messaggio copiato! ✉️"); }}
-                              style={{ background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", color:T.red||"#C0392B", padding:"5px 10px", borderRadius:50, fontSize:10, fontFamily:"'DM Sans'", fontWeight:700, cursor:"pointer" }}>
+                          {subAtRisk.length > 0 && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                const msg = `Ciao ${leader.name}! Ho visto che ${subAtRisk.map(m => m.name).join(", ")} ${subAtRisk.length === 1 ? "è" : "sono"} indietro con gli obiettivi. Come posso aiutarti a supportar${subAtRisk.length === 1 ? "lo" : "li"}?`;
+                                navigator.clipboard?.writeText(msg);
+                                fire("Messaggio copiato — incollalo su WhatsApp! ✉️");
+                              }}
+                              style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: T.red, padding: "5px 10px", borderRadius: 50, fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer" }}
+                            >
                               📩 Segnala
                             </button>
                           )}
-                          <span style={{ color: T.muted, fontSize: 14 }}>{isExp ? "▲" : "▼"}</span>
+                          <span style={{ color: T.muted, fontSize: 16 }}>{isExpanded ? "▲" : "▼"}</span>
                         </div>
                       </div>
-                      {isExp && subs.map(sub => {
-                        const goal=sub.currentWeek||1; const actual=sub.weeklyClients||0;
-                        const pct=Math.min((actual/goal)*100,100); const isRisk=actual<goal*0.5;
+
+                      {/* Collaboratori del neo-leader — espandibili */}
+                      {isExpanded && memberSubs.map(sub => {
+                        const lvl = LEVEL_CONFIG[sub.level] || LEVEL_CONFIG.principiante;
+                        const goal = sub.currentWeek || 1;
+                        const actual = sub.weeklyClients || 0;
+                        const pct = Math.min((actual / goal) * 100, 100);
+                        const isSubRisk = actual < goal * 0.5;
                         return (
-                          <div key={sub.id} style={{ background:T.card, border:`1px solid ${isRisk?T.red+"44":T.border}`, borderRadius:10, padding:"12px 14px", marginBottom:8, marginLeft:16 }}>
-                            <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:8 }}>
-                              <div style={{ width:28, height:28, borderRadius:"50%", background:T.surface, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:900, color:T.text, flexShrink:0, fontFamily:"'DM Sans'" }}>
-                                {(sub.name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase()}
+                          <div key={sub.id} style={{ background: T.card, border: `1px solid ${isSubRisk ? T.red + "44" : T.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, marginLeft: 16 }}>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                              <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: T.text, flexShrink: 0, fontFamily: "'DM Sans'" }}>
+                                {(sub.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
                               </div>
-                              <div style={{ flex:1 }}>
-                                <div style={{ fontSize:13, fontWeight:700, color:T.text }}>{sub.name}</div>
-                                <div style={{ fontSize:11, color:T.muted, fontFamily:"'DM Sans'" }}>Sett.{sub.currentWeek||1} · {sub.completedMissions?.length||0} missioni</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{sub.name}</div>
+                                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>
+                                  {lvl.icon} {lvl.label} · Sett. {sub.currentWeek || 1} · {sub.completedMissions?.length || 0} missioni
+                                </div>
                               </div>
-                              <div style={{ textAlign:"right" }}>
-                                <div style={{ fontSize:16, fontWeight:900, color:isRisk?T.red||"#C0392B":T.accent }}>{actual}</div>
-                                <div style={{ fontSize:9, color:T.muted, fontFamily:"'DM Sans'" }}>/{goal} clienti</div>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontSize: 18, fontWeight: 900, color: isSubRisk ? T.red : T.accent }}>{actual}</div>
+                                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Sans'" }}>/{goal} clienti</div>
                               </div>
                             </div>
-                            <div style={{ background:T.border, borderRadius:50, height:4 }}>
-                              <div style={{ height:4, borderRadius:50, background:isRisk?T.red||"#C0392B":T.accent, width:`${pct}%`, transition:"width 0.5s" }} />
+                            <div style={{ background: T.border, borderRadius: 50, height: 4 }}>
+                              <div style={{ height: 4, borderRadius: 50, background: isSubRisk ? T.red : T.accent, width: `${pct}%`, transition: "width 0.5s" }} />
                             </div>
                           </div>
                         );
@@ -304,8 +276,35 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           </div>
         )}
 
-        {/* MISSIONI LEADER */}
-        {tab === "missioni" && <LeaderMissions />}
+        {/* AZIONI LEADER */}
+        {tab === "azioni" && (
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, color: T.text }}>💡 Azioni Settimanali del Leader</div>
+            {[
+              { icon: "📞", title: "Chiama chi è indietro", desc: "5 minuti di chiamata a un collaboratore bloccato valgono più di 10 messaggi. Fallo oggi.", urgency: "alta" },
+              { icon: "🎉", title: "Celebra nel gruppo team", desc: "Pubblica nel gruppo WhatsApp del team le vittorie della settimana — anche le piccole.", urgency: "media" },
+              { icon: "📋", title: "Check-in nuovi (<30 giorni)", desc: "Fai un check-in di 15 minuti con tutti i collaboratori registrati nell'ultimo mese.", urgency: "alta" },
+              { icon: "🔥", title: "Condividi la tua vittoria", desc: "Racconta una tua vittoria personale nel gruppo — ispira con l'esempio, non con le parole.", urgency: "media" },
+              { icon: "🎓", title: "Sessione formazione mensile", desc: "Organizza una call di 45 minuti con tutto il team: risultati + 1 tecnica nuova + domande.", urgency: "mensile" },
+              { icon: "🔄", title: "Rivaluta i livelli del team", desc: "Controlla se qualche collaboratore ha superato il suo livello attuale e aggiornalo.", urgency: "mensile" },
+            ].map((a, i) => (
+              <Card key={i} style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{a.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{a.title}</div>
+                      <span style={{ background: a.urgency === "alta" ? T.redBg : a.urgency === "mensile" ? T.blueBg : T.accentBg, color: a.urgency === "alta" ? T.red : a.urgency === "mensile" ? T.purple : T.accent, padding: "3px 10px", borderRadius: 20, fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
+                        {a.urgency === "alta" ? "OGGI" : a.urgency === "mensile" ? "MENSILE" : "QUESTA SETT."}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.6 }}>{a.desc}</div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 );
       {/* Bottom nav — solo in modalità standalone */}
@@ -367,50 +366,14 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           {toast}
         </div>
       )}
-
-      {showReport && (
-        <WeeklyReport
-          team={team}
-          deepTeam={deepTeam}
-          leaderName={userProfile?.name || ""}
-          onClose={() => setShowReport(false)}
-        />
-      )}
-      {showUplineConnect && (
-        <UplineConnect
-          onClose={() => setShowUplineConnect(false)}
-          onConnected={() => setShowUplineConnect(false)}
-        />
-      )}
-      {showNotifSettings && (
-        <NotificationSettings onClose={() => setShowNotifSettings(false)} />
-      )}
       {/* Header standalone completo */}
       <div style={{ padding: "28px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontSize: 11, color: T.accent, fontFamily: "'DM Sans'", letterSpacing: 4, textTransform: "uppercase", marginBottom: 4 }}>Dashboard Leader</div>
           <div style={{ fontSize: 26, fontWeight: 900, color: T.text }}>{userProfile?.name}</div>
-          {userProfile?.leaderName ? (
-            <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>
-              Upline: {userProfile.leaderName}
-              {!userProfile?.leaderId && (
-                <button onClick={() => setShowUplineConnect(true)} style={{ marginLeft: 8, background: "none", border: "none", color: T.accent, fontSize: 11, fontFamily: "'DM Sans'", cursor: "pointer", fontWeight: 700 }}>Collega upline →</button>
-              )}
-            </div>
-          ) : (
-            <button onClick={() => setShowUplineConnect(true)} style={{ background: "none", border: "none", color: T.muted, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer", padding: 0, marginTop: 4 }}>
-              + Collega il tuo upline
-            </button>
-          )}
+          <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>Sorgenta Network</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            onClick={() => setShowNotifSettings(true)}
-            title="Impostazioni notifiche"
-            style={{ background: userProfile?.notificationsEnabled ? T.accentBg : "none", border: `1px solid ${userProfile?.notificationsEnabled ? T.accentBorder : T.border}`, borderRadius: 50, padding: "6px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
-          >
-            {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
-          </button>
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>Esci</button>
         </div>

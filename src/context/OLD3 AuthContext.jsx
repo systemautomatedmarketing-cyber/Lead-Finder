@@ -13,8 +13,7 @@ import {
 import { auth, db } from "../firebase";
 import { getDefaultPlan } from "../data/plans";
 
-//const LEADER_SECRET_CODE = "SORGENTA-LEADER-2024";
-const LEADER_SECRET_CODE = "LF-AXION-739";
+const LEADER_SECRET_CODE = "SORGENTA-LEADER-2024";
 
 const AuthContext = createContext(null);
 
@@ -69,28 +68,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Registrazione LEADER ──────────────────────────────────
-  async function registerLeader({ name, email, password, leaderCode, uplineCode }) {
+  async function registerLeader({ name, email, password, leaderCode }) {
     if (leaderCode !== LEADER_SECRET_CODE) {
       throw new Error("Codice leader non valido. Contatta l'amministratore.");
     }
     const { user } = await createUserWithEmailAndPassword(auth, email, password);
     const inviteCode = generateInviteCode(name);
-
-    // Cerca upline se è stato fornito il codice (campo opzionale)
-    let leaderId   = null;
-    let leaderName = null;
-    if (uplineCode?.trim()) {
-      try {
-        const q    = query(collection(db, "teams"), where("inviteCode", "==", uplineCode.trim().toUpperCase()));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          leaderId   = snap.docs[0].data().leaderId;
-          leaderName = snap.docs[0].data().leaderName;
-        }
-      } catch (e) {
-        console.warn("Upline code lookup failed:", e);
-      }
-    }
 
     const profile = {
       uid: user.uid,
@@ -104,19 +87,16 @@ export function AuthProvider({ children }) {
       trialStartedAt: new Date().toISOString(),
       companySetupDone: false,
       createdAt: serverTimestamp(),
-      ...(leaderId ? { leaderId, leaderName, connectedUplineAt: new Date().toISOString() } : {}),
     };
 
     await setDoc(doc(db, "users", user.uid), profile);
     await setDoc(doc(db, "teams", user.uid), {
-      leaderId:    user.uid,
-      leaderName:  name,
+      leaderId: user.uid,
+      leaderName: name,
       inviteCode,
-      isSubLeader: !!leaderId,
-      uplineId:    leaderId || null,
-      uplineName:  leaderName || null,
-      createdAt:   serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
+    // onSnapshot aggiornerà userProfile automaticamente
     return user;
   }
 
