@@ -38,44 +38,43 @@ export function PlanProvider({ children }) {
   // ── Checkout Stripe (chiama Firebase Function) ───────────────
   const startCheckout = async (targetPlanId, billingPeriod = "monthly") => {
     try {
+      const { loadStripe } = await import("@stripe/stripe-js");
+      const stripe = await loadStripe(STRIPE_PK);
+      if (!stripe) throw new Error("Stripe non disponibile");
+
       const priceKey = `${targetPlanId}_${billingPeriod}`;
       const priceId  = STRIPE_PRICES[priceKey];
       if (!priceId || priceId.includes("XXXXXXXXXX")) {
-        alert("⚠️ Price ID non configurato per questo piano. Controlla src/data/plans.js.");
+        alert("⚠️ Stripe non ancora configurato.\n\n1. Crea i prodotti su dashboard.stripe.com\n2. Copia i Price ID in src/data/plans.js\n3. Deploya le Firebase Functions con:\n   cd functions && npm install\n   firebase deploy --only functions\n4. Imposta le chiavi:\n   firebase functions:config:set stripe.secret='sk_live_xxx' stripe.webhook='whsec_xxx'");
         return;
       }
 
+      // Chiama la Firebase Function per creare la Checkout Session
+      // URL della Firebase Cloud Function (imposta VITE_FUNCTIONS_BASE_URL nel .env)
       const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL
         || `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+      const resp = await fetch(
+        `${FUNCTIONS_URL}/createCheckoutSession`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId:     userProfile.uid,
+            email:      userProfile.email,
+            priceId,
+            successUrl: `${window.location.origin}/?checkout=success`,
+            cancelUrl:  `${window.location.origin}/?checkout=cancelled`,
+          }),
+        }
+      );
 
-      const resp = await fetch(`${FUNCTIONS_URL}/createCheckoutSession`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId:     userProfile.uid,
-          email:      userProfile.email,
-          priceId,
-          successUrl: `${window.location.origin}/?checkout=success`,
-          cancelUrl:  `${window.location.origin}/?checkout=cancelled`,
-        }),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${resp.status}`);
-      }
-
-      // Usa l'URL diretto — redirectToCheckout è deprecato
-      const { url } = await resp.json();
-      if (url) {
-        window.location.href = url;
-      } else {
-        throw new Error("URL di pagamento non ricevuto dalla Function");
-      }
+      if (!resp.ok) throw new Error("Errore nella creazione della sessione di pagamento");
+      const { sessionId } = await resp.json();
+      await stripe.redirectToCheckout({ sessionId });
 
     } catch (err) {
       console.error("Stripe checkout error:", err);
-      alert(`Errore pagamento: ${err.message}`);
+      alert(`Errore: ${err.message}`);
     }
   };
 

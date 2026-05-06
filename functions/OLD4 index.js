@@ -31,11 +31,10 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 // ── Mappa Price ID Stripe → Piano Lead Finder ─────────────────
 // Aggiorna questi ID dopo aver creato i prodotti su dashboard.stripe.com
 const PRICE_TO_PLAN = {
-  // Price ID reali da src/data/plans.js
-  "price_1TTNXeF3HfLtoUWm95wqQjb0": "collaboratore_pro",
-  "price_1TTNYBF3HfLtoUWmwAL8ASlp":  "collaboratore_pro",
-  "price_1TTNZwF3HfLtoUWmiiJX16Tq": "leader_pro",
-  "price_1TTNaHF3HfLtoUWmkzJriJ32":  "leader_pro",
+  "price_collab_monthly": "price_1TTNXeF3HfLtoUWm95wqQjb0", // €9.99/mese
+  "price_collab_yearly":  "price_1TTNYBF3HfLtoUWmwAL8ASlp",   // €89.99/anno (~25% sconto)
+  "price_leader_monthly": "price_1TTNZwF3HfLtoUWmiiJX16Tq",   // €24.99/mese
+  "price_leader_yearly":  "price_1TTNaHF3HfLtoUWmkzJriJ32",   // €219.99/anno (~27% sconto)
 };
 
 // ── CORS — domini autorizzati ─────────────────────────────────

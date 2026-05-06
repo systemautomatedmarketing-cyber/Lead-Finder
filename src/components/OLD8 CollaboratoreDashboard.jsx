@@ -8,7 +8,7 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
-import { MISSIONS_BY_LEVEL, LEVELS, TOTAL_WEEKS, getPhase } from "../data/missions";
+import { MISSIONS_BY_LEVEL, LEVELS } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import NotificationSettings from "./NotificationSettings";
 import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
@@ -105,7 +105,7 @@ export default function CollaboratoreDashboard() {
   const weeklyClients    = userProfile?.weeklyClients || 0;
   const points           = userProfile?.points || 0;
   const completedMissions= userProfile?.completedMissions || [];
-  const weekGoal         = lvlInfo?.weeklyTarget?.[Math.min(currentWeek - 1, TOTAL_WEEKS - 1)] || currentWeek;
+  const weekGoal         = lvlInfo?.weeklyTarget?.[Math.min(currentWeek - 1, 6)] || currentWeek;
   const progress         = Math.min((weeklyClients / weekGoal) * 100, 100);
 
   // ── Contatti real-time da Firestore ──────────────────────
@@ -159,7 +159,7 @@ export default function CollaboratoreDashboard() {
 
   // ── Avanza settimana ──────────────────────────────────────
   const advanceWeek = async () => {
-    if (currentWeek >= TOTAL_WEEKS) return;
+    if (currentWeek >= 7) return;
     await updateProfile({ currentWeek: currentWeek + 1, weeklyClients: 0 });
     fire(`Settimana ${currentWeek + 1} iniziata! 🚀`);
   };
@@ -397,7 +397,7 @@ export default function CollaboratoreDashboard() {
               {weeklyClients >= weekGoal ? (
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <div style={{ flex: 1, fontSize: 13, fontFamily: "'DM Sans'", color: T.green }}>🎉 Obiettivo raggiunto!</div>
-                  {currentWeek < TOTAL_WEEKS && (
+                  {currentWeek < 7 && (
                     <Btn variant="soft" onClick={advanceWeek} style={{ fontSize: 12 }}>
                       Settimana {currentWeek + 1} →
                     </Btn>
@@ -413,7 +413,7 @@ export default function CollaboratoreDashboard() {
                     <Btn variant="soft" onClick={() => setTab("contatti")} style={{ flex: 1, fontSize: 12, textAlign: "center" }}>
                       📋 Vai ai Contatti
                     </Btn>
-                    {currentWeek < TOTAL_WEEKS && (
+                    {currentWeek < 7 && (
                       <Btn variant="ghost" onClick={advanceWeek} style={{ flex: 1, fontSize: 12, textAlign: "center" }}>
                         Settimana {currentWeek + 1} →
                       </Btn>
@@ -433,47 +433,22 @@ export default function CollaboratoreDashboard() {
               )}
             </Card>
 
-            {/* Roadmap 26 settimane — 3 fasi */}
+            {/* Roadmap */}
             <Card style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>🗺 Percorso 26 Settimane</div>
-                <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted }}>Sett. {currentWeek}/{TOTAL_WEEKS}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>🗺 Percorso 7 Settimane</div>
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                {Array.from({ length: 7 }, (_, i) => i + 1).map(w => {
+                  const t = lvlInfo?.weeklyTarget?.[w - 1] || w;
+                  return (
+                    <div key={w} style={{ flexShrink: 0, textAlign: "center", width: 54 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: "50%", margin: "0 auto 6px", background: w < currentWeek ? T.green : w === currentWeek ? T.accent : T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: w <= currentWeek ? "#0a0a0f" : T.muted }}>
+                        {w < currentWeek ? "✓" : w}
+                      </div>
+                      <div style={{ fontSize: 9, fontFamily: "'DM Sans'", color: w === currentWeek ? T.accent : T.muted }}>{t}/sett</div>
+                    </div>
+                  );
+                })}
               </div>
-              {/* Barra progresso globale */}
-              <div style={{ background: T.border, borderRadius: 50, height: 4, marginBottom: 10 }}>
-                <div style={{ height: 4, borderRadius: 50, background: `linear-gradient(90deg, ${T.accent}, ${T.accentSoft || T.accent})`, width: `${Math.min((currentWeek / TOTAL_WEEKS) * 100, 100)}%`, transition: "width 0.5s" }} />
-              </div>
-              {/* Fase corrente */}
-              <div style={{ fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 700, color: getPhase(currentWeek).color, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                {getPhase(currentWeek).label}
-              </div>
-              {/* 3 fasi orizzontali scrollabili */}
-              {[
-                { n: 1, label: "Fase 1", range: [1, 7],   color: "#1A7A4A" },
-                { n: 2, label: "Fase 2", range: [8, 16],  color: "#1A5FA8" },
-                { n: 3, label: "Fase 3", range: [17, 26], color: "#B8860B" },
-              ].map(phase => (
-                <div key={phase.n} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 9, fontFamily: "'DM Sans'", fontWeight: 700, color: phase.color, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>
-                    {phase.label} · Sett {phase.range[0]}-{phase.range[1]}
-                  </div>
-                  <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 2 }}>
-                    {Array.from({ length: phase.range[1] - phase.range[0] + 1 }, (_, i) => phase.range[0] + i).map(w => {
-                      const t      = lvlInfo?.weeklyTarget?.[w - 1] || w;
-                      const isPast = w < currentWeek;
-                      const isCurr = w === currentWeek;
-                      return (
-                        <div key={w} style={{ flexShrink: 0, textAlign: "center", width: 30 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: "50%", margin: "0 auto 2px", background: isPast ? phase.color : isCurr ? T.accent : T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: isPast || isCurr ? "#fff" : T.muted, boxShadow: isCurr ? `0 0 0 2px ${T.accent}` : "none" }}>
-                            {isPast ? "✓" : w}
-                          </div>
-                          <div style={{ fontSize: 7, fontFamily: "'DM Sans'", color: isCurr ? T.accent : T.muted }}>{t}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
             </Card>
 
             {/* Banner follow-up lead in scadenza */}

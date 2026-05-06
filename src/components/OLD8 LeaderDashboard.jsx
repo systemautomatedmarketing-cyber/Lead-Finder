@@ -1,7 +1,6 @@
 // src/components/LeaderDashboard.jsx
 import { useState, useEffect } from "react";
 import WeeklyReport from "./WeeklyReport";
-import { PaywallModal } from "./PricingScreen";
 import LeaderMissions from "./LeaderMissions";
 import UplineConnect from "./UplineConnect";
 import NotificationSettings from "./NotificationSettings";
@@ -9,7 +8,6 @@ import { exportTeamCSV } from "../utils/exportCSV";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { teamVisibleLimit } from "../data/plans";
 import { usePlan } from "../context/PlanContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { useDualRole } from "../hooks/useDualRole";
@@ -49,7 +47,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const [showReport, setShowReport]               = useState(false);
   const [expandedLeader, setExpandedLeader]       = useState(null);
   const [showUplineConnect, setShowUplineConnect] = useState(false);
-  const [showTeamPaywall, setShowTeamPaywall]     = useState(false);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [deepTeam, setDeepTeam]             = useState([]);
 
@@ -116,12 +113,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const atRisk        = team.filter(m => getMemberStatus(m) === "risk");
   const topPerformers = team.filter(m => getMemberStatus(m) === "top");
 
-  // ── Limite team per piano ─────────────────────────────────
-  const planId      = userProfile?.plan || "leader_starter";
-  const teamLimit   = teamVisibleLimit(planId);   // -1=illimitato, 5=starter
-  const isTeamFull  = teamLimit !== -1 && team.length > teamLimit;
-  const visibleTeam = teamLimit === -1 ? team : team.slice(0, teamLimit);
-
   // ── Aggiorna livello collaboratore ────────────────────────
   const updateLevel = async (uid, newLevel) => {
     await updateDoc(doc(db, "users", uid), { level: newLevel });
@@ -170,7 +161,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         {/* KPI strip */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
           {[
-            { label: "Team",      value: isTeamFull ? `${visibleTeam.length}/${team.length}🔒` : team.length, icon: "👥", color: T.text },
+            { label: "Team",      value: team.length,     icon: "👥", color: T.text },
             { label: "Clienti",   value: totalClients,    icon: "🎯", color: T.accent },
             { label: "Missioni",  value: totalMissions,   icon: "⚡", color: T.blue },
             { label: "A rischio", value: atRisk.length,   icon: "⚠️", color: atRisk.length > 0 ? T.red : T.muted },
@@ -210,29 +201,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
                   per far registrare il tuo team!
                 </div>
               </div>
-            ) : (
-              <>
-                {visibleTeam.map(m => <MemberCard key={m.id} m={m} onUpdateLevel={updateLevel} onSelect={setSelectedMember} fire={fire} onPromote={(member) => { promoteToLeader(member, "manual"); fire(`${member.name} promosso a Leader! 👑`); }} />)}
-                {isTeamFull && (
-                  <div
-                    onClick={() => setShowTeamPaywall(true)}
-                    style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", marginTop: 8 }}
-                  >
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display'", marginBottom: 6 }}>
-                      +{team.length - teamLimit} collaboratori non visibili
-                    </div>
-                    <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 16, lineHeight: 1.5 }}>
-                      Con il piano <strong>Starter</strong> vedi solo {teamLimit} collaboratori.<br />
-                      Passa a <strong style={{ color: T.accent }}>Leader Pro</strong> per gestire il team completo.
-                    </div>
-                    <div style={{ background: T.accent, color: "#0a0a0f", borderRadius: 50, padding: "10px 24px", display: "inline-block", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13 }}>
-                      Passa a Leader Pro — 14 giorni gratis
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+            ) : team.map(m => <MemberCard key={m.id} m={m} onUpdateLevel={updateLevel} onSelect={setSelectedMember} fire={fire} onPromote={(member) => { promoteToLeader(member, "manual"); fire(`${member.name} promosso a Leader! 👑`); }} />)}
           </div>
         )}
 
@@ -415,9 +384,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
       )}
       {showNotifSettings && (
         <NotificationSettings onClose={() => setShowNotifSettings(false)} />
-      )}
-      {showTeamPaywall && (
-        <PaywallModal feature="team_size" onClose={() => setShowTeamPaywall(false)} />
       )}
       {/* Header standalone completo */}
       <div style={{ padding: "28px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
