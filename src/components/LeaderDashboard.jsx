@@ -122,6 +122,8 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const isTeamFull  = teamLimit !== -1 && team.length > teamLimit;
   const visibleTeam = teamLimit === -1 ? team : team.slice(0, teamLimit);
 
+
+
   // ── Aggiorna livello collaboratore ────────────────────────
   const updateLevel = async (uid, newLevel) => {
     await updateDoc(doc(db, "users", uid), { level: newLevel });
@@ -213,28 +215,30 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             ) : (
               <>
                 {visibleTeam.map(m => <MemberCard key={m.id} m={m} onUpdateLevel={updateLevel} onSelect={setSelectedMember} fire={fire} onPromote={(member) => { promoteToLeader(member, "manual"); fire(`${member.name} promosso a Leader! 👑`); }} />)}
-                {isTeamFull && (
-                  <div
-                    onClick={() => setShowTeamPaywall(true)}
-                    style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", marginTop: 8 }}
-                  >
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display'", marginBottom: 6 }}>
-                      +{team.length - teamLimit} collaboratori non visibili
-                    </div>
-                    <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 16, lineHeight: 1.5 }}>
-                      Con il piano <strong>Starter</strong> vedi solo {teamLimit} collaboratori.<br />
-                      Passa a <strong style={{ color: T.accent }}>Leader Pro</strong> per gestire il team completo.
+
+                {isTeamFull && ( 
+                  <div 
+                    onClick={() => setShowTeamPaywall(true)} 
+                    style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", marginTop: 8 }} 
+                  > 
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div> 
+                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display'", marginBottom: 6 }}> 
+                      +{team.length - teamLimit} collaboratori non visibili 
+                    </div> 
+                    <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 16, lineHeight: 1.5 }}> 
+                      Con il piano <strong>Starter</strong> vedi solo {teamLimit} collaboratori.<br /> 
+                      Passa a <strong style={{ color: T.accent }}>{ userProfile.role === "leader" ? "Leader Pro" : "Collaboratore Pro" }</strong> per gestire il team completo.
                     </div>
                     <div style={{ background: T.accent, color: "#0a0a0f", borderRadius: 50, padding: "10px 24px", display: "inline-block", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13 }}>
-                      Passa a Leader Pro — 14 giorni gratis
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                      Passa a { userProfile.role === "leader" ? "Leader Pro" : "Collaboratore Pro" } — 14 giorni gratis 
+                    </div> 
+                  </div> 
+                )} 
+              </> 
+            )} 
+          </div> 
+        )} 
+
 
         {/* A RISCHIO */}
         {tab === "rischio" && (
@@ -377,6 +381,9 @@ export default function LeaderDashboard({ isEmbedded = false }) {
 {/*          <ThemeToggle /> */}
         </div>
         {content}
+      {showTeamPaywall && (
+        <PaywallModal feature="team_size" onClose={() => setShowTeamPaywall(false)} />
+      )}
       </>
     );
   } 
@@ -416,6 +423,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
       {showNotifSettings && (
         <NotificationSettings onClose={() => setShowNotifSettings(false)} />
       )}
+{console.log("showTeamPaywall = ", showTeamPaywall) }
       {showTeamPaywall && (
         <PaywallModal feature="team_size" onClose={() => setShowTeamPaywall(false)} />
       )}

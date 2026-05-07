@@ -9,7 +9,9 @@ import LeaderDashboard from "./components/LeaderDashboard";
 import CollaboratoreDashboard from "./components/CollaboratoreDashboard";
 
 function AppRouter() {
-  const { currentUser, userProfile } = useAuth();
+//  const { currentUser, userProfile } = useAuth();
+const auth = useAuth() as any;
+const { currentUser, userProfile } = auth;
 
   // Non loggato
   if (!currentUser || !userProfile) return <AuthScreen />;

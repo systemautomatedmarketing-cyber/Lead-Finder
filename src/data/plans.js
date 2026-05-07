@@ -30,7 +30,7 @@ export const PLANS = {
       contacts_max:       20,       // max contatti salvabili
       missions_weeks:     1,        // solo settimana 1
       scripts_count:      3,        // solo script base
-      team_visible:       0,        // solo leader: collaboratori visibili (0 = N/A)
+      team_visible:       5,        // solo leader: collaboratori visibili (0 = N/A)
       ai_persona:         false,    // onboarding AI disabilitato
       recovery_system:    false,    // sistema recovery disabilitato
       export_csv:         false,
@@ -70,7 +70,7 @@ export const PLANS = {
       contacts_max:       -1,       // illimitati
       missions_weeks:     26,       // tutte le 26 settimane (fasi 1+2+3)
       scripts_count:      -1,       // tutti gli script
-      team_visible:       0,        // N/A per collaboratori
+      team_visible:       -1,        // N/A per collaboratori
       ai_persona:         true,
       recovery_system:    true,
       export_csv:         false,    // non necessario per collaboratori

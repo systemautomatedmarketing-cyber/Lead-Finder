@@ -145,7 +145,7 @@ export function PaywallModal({ feature, onClose }) {
     analytics:  "le analytics avanzate",
     team:       "la visibilità completa del team",
   };
-
+console.log("PaywallModal Inizio", onClose);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", alignItems: "flex-end" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "24px 24px 0 0", width: "100%", padding: 24, borderTop: `3px solid ${T.accent}` }}>
