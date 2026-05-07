@@ -11,10 +11,12 @@ import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { MISSIONS_BY_LEVEL, LEVELS, TOTAL_WEEKS, getPhase } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import NotificationSettings from "./NotificationSettings";
+import PlansTab from "./PlansTab";
 import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
 import RoleToggle from "./RoleToggle";
 //import MiniLeaderDashboard from "./MiniLeaderDashboard";
 import { useDualRole } from "../hooks/useDualRole";
+import { usePlan } from "../context/PlanContext";
 import LeaderDashboard from "./LeaderDashboard";
 
 const C = {
@@ -65,6 +67,7 @@ export default function CollaboratoreDashboard() {
   const { userProfile, updateProfile, logout } = useAuth();
   const { T } = useTheme();
   const dualRole = useDualRole();
+  const { can, onTrial, planId } = usePlan();
   const uid     = userProfile?.uid;
   const level   = userProfile?.level || "principiante";
   const lvlInfo = LEVELS[level];
@@ -160,6 +163,12 @@ export default function CollaboratoreDashboard() {
   // ── Avanza settimana ──────────────────────────────────────
   const advanceWeek = async () => {
     if (currentWeek >= TOTAL_WEEKS) return;
+    // Controlla se il piano permette la settimana successiva
+    if (!can.accessWeek(currentWeek + 1)) {
+      setTab("piani");
+      fire("🔒 Settimana bloccata — passa al piano Pro!");
+      return;
+    }
     await updateProfile({ currentWeek: currentWeek + 1, weeklyClients: 0 });
     fire(`Settimana ${currentWeek + 1} iniziata! 🚀`);
   };
@@ -167,6 +176,12 @@ export default function CollaboratoreDashboard() {
   // ── CRUD Contatti ─────────────────────────────────────────
   const addContact = async () => {
     if (!nc.name.trim()) return;
+    // Controlla limite contatti del piano
+    if (!can.addContact(contacts.length)) {
+      setTab("piani");
+      fire("🔒 Limite 20 contatti raggiunto — passa al Pro!");
+      return;
+    }
     const contactData = {
       ...nc,
       createdAt: serverTimestamp(),
@@ -324,7 +339,11 @@ export default function CollaboratoreDashboard() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "6px 14px", fontFamily: "'DM Sans'", fontWeight: 700, color: T.accent, fontSize: 14 }}>⭐ {points}pt</div>
+          {can.allScripts() ? (
+            <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 50, padding: "6px 14px", fontFamily: "'DM Sans'", fontWeight: 700, color: T.accent, fontSize: 14 }}>⭐ {points}pt</div>
+          ) : (
+            <div onClick={() => setTab("piani")} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 50, padding: "6px 14px", fontFamily: "'DM Sans'", fontWeight: 600, color: T.muted, fontSize: 12, cursor: "pointer" }}>🔒 Pro</div>
+          )}
           <button
             onClick={() => setShowNotifSettings(true)}
             title="Impostazioni notifiche"
@@ -490,15 +509,38 @@ export default function CollaboratoreDashboard() {
               </div>
             )}
 
-            {/* Recovery banner — appare dalla settimana 3 senza risultati */}
+            {/* Recovery banner — appare dalla settimana 3, solo se piano lo permette */}
             {showRecoveryBanner && (
-              <div onClick={() => setShowRecovery(true)} style={{ background: T.redBg, border: `1px solid ${T.red}44`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
-                <span style={{ fontSize: 28 }}>🔄</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.red, fontFamily: "'Playfair Display'", marginBottom: 2 }}>Nessun risultato ancora?</div>
-                  <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Analizziamo il blocco e creiamo un piano personalizzato per te.</div>
+              can.useRecovery() ? (
+                <div onClick={() => setShowRecovery(true)} style={{ background: T.redBg, border: `1px solid ${T.red}44`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 28 }}>🔄</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.red, fontFamily: "'Playfair Display'", marginBottom: 2 }}>Nessun risultato ancora?</div>
+                    <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Analizziamo il blocco e creiamo un piano personalizzato per te.</div>
+                  </div>
+                  <span style={{ color: T.muted, fontSize: 18 }}>→</span>
                 </div>
-                <span style={{ color: T.muted, fontSize: 18 }}>→</span>
+              ) : (
+                <div onClick={() => setTab("piani")} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 28 }}>🔒</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 2 }}>Sistema Recovery — Piano Pro</div>
+                    <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Sblocca il piano personalizzato anti-blocco passando al Collaboratore Pro.</div>
+                  </div>
+                  <span style={{ color: T.accent, fontSize: 12, fontFamily: "'DM Sans'", fontWeight: 700 }}>Scopri →</span>
+                </div>
+              )
+            )}
+
+            {/* Banner settimana bloccata per piano Starter */}
+            {!can.accessWeek(currentWeek) && (
+              <div onClick={() => setTab("piani")} style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "14px 16px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 28 }}>🔒</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.accent, fontFamily: "'Playfair Display'" }}>Settimana {currentWeek} bloccata</div>
+                  <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Il piano Starter include solo 5 settimane. Passa al Pro per il percorso completo di 26 settimane.</div>
+                </div>
+                <span style={{ color: T.accent, fontWeight: 700, fontSize: 12, fontFamily: "'DM Sans'" }}>Sblocca →</span>
               </div>
             )}
 
@@ -543,32 +585,100 @@ export default function CollaboratoreDashboard() {
         {tab === "missioni" && (
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Tutte le Missioni</div>
-            <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginBottom: 16 }}>Percorso {lvlInfo?.icon} {lvlInfo?.label} · {completedMissions.length}/{missions.length} completate</div>
-
-            {/* Progress bar livello */}
-            <div style={{ background: T.border, borderRadius: 50, height: 6, marginBottom: 20 }}>
-              <div style={{ height: 6, borderRadius: 50, background: `linear-gradient(90deg, ${lvlInfo?.color || T.accent}, ${T.accentSoft})`, width: `${Math.min((completedMissions.length / Math.max(missions.length, 1)) * 100, 100)}%`, transition: "width 0.5s" }} />
+            <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginBottom: 16 }}>
+              Percorso {lvlInfo?.icon} {lvlInfo?.label} · {completedMissions.length}/{missions.filter(m => can.accessWeek(m.week)).length} completate
             </div>
 
-            {[1, 2, 3, 4, 5, 6, 7].map(w => {
-              const wm = missions.filter(m => m.week === w);
-              if (!wm.length) return null;
-              const wLabels = ["🌱 Settimana 1", "🌿 Settimana 2", "🔥 Settimana 3", "💪 Settimana 4", "🚀 Settimana 5", "⭐ Settimana 6", "🏆 Settimana 7"];
+            {/* Progress bar */}
+            <div style={{ background: T.border, borderRadius: 50, height: 6, marginBottom: 20 }}>
+              <div style={{ height: 6, borderRadius: 50, background: `linear-gradient(90deg, ${lvlInfo?.color || T.accent}, ${T.accentSoft})`, width: `${Math.min((completedMissions.length / Math.max(missions.filter(m => can.accessWeek(m.week)).length, 1)) * 100, 100)}%`, transition: "width 0.5s" }} />
+            </div>
+
+            {/* Fasi e settimane — tutte le 26, con lock per piano Starter */}
+            {[
+              { fase: 1, label: "Fase 1 — Fondamenta", weeks: [1,2,3,4,5,6,7],     color: "#1A7A4A" },
+              { fase: 2, label: "Fase 2 — Slancio",    weeks: [8,9,10,11,12,13,14,15,16], color: "#1A5FA8" },
+              { fase: 3, label: "Fase 3 — Scalabilità",weeks: [17,18,19,20,21,22,23,24,25,26], color: "#B8860B" },
+            ].map(({ fase, label, weeks, color }) => {
+              // Controlla se almeno una settimana di questa fase ha missioni
+              const faseHasMissions = weeks.some(w => missions.some(m => m.week === w));
+              if (!faseHasMissions) return null;
+
+              // Prima settimana bloccata in questa fase (se esiste)
+              const firstLockedWeek = weeks.find(w => !can.accessWeek(w) && missions.some(m => m.week === w));
+
               return (
-                <div key={w} style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: w === currentWeek ? T.accent : T.muted, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{wLabels[w - 1]}</div>
-                  {wm.map(m => {
-                    const done = completedMissions.includes(m.id);
+                <div key={fase} style={{ marginBottom: 28 }}>
+                  {/* Header fase */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <div style={{ height: 2, width: 16, background: color, borderRadius: 2 }} />
+                    <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+                    <div style={{ flex: 1, height: 1, background: T.border }} />
+                  </div>
+
+                  {weeks.map(w => {
+                    const wm = missions.filter(m => m.week === w);
+                    if (!wm.length) return null;
+
+                    const isLocked   = !can.accessWeek(w);
+                    const isCurrent  = w === currentWeek;
+                    const isDone     = wm.every(m => completedMissions.includes(m.id));
+                    const isFirst    = w === firstLockedWeek; // mostra banner Pro solo sulla prima settimana bloccata
+
                     return (
-                      <div key={m.id} className="mission-card" onClick={() => setShowMission(m)} style={{ background: done ? "rgba(62,207,142,0.06)" : T.card, border: `1px solid ${done ? "rgba(62,207,142,0.2)" : T.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, display: "flex", gap: 12, alignItems: "center" }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 12, background: done ? "rgba(62,207,142,0.15)" : "rgba(232,197,71,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-                          {done ? "✅" : m.channel === "whatsapp" ? "💬" : m.channel === "social" ? "📱" : "🤝"}
+                      <div key={w} style={{ marginBottom: 20 }}>
+                        {/* Header settimana */}
+                        <div style={{ fontSize: 12, fontFamily: "'DM Sans'", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 8, color: isCurrent ? T.accent : isLocked ? T.muted : T.text }}>
+                          {isDone ? "✅" : isLocked ? "🔒" : isCurrent ? "▶" : "○"}
+                          {" "}Settimana {w}
+                          {isCurrent && <span style={{ background: T.accentBg, color: T.accent, padding: "2px 8px", borderRadius: 20, fontSize: 10 }}>Corrente</span>}
+                          {isLocked && <span style={{ background: T.surface, color: T.muted, padding: "2px 8px", borderRadius: 20, fontSize: 10, border: `1px solid ${T.border}` }}>Bloccata</span>}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{m.title}</div>
-                          <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>{m.kpi}</div>
-                        </div>
-                        <div style={{ color: done ? T.green : T.accent, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13 }}>+{m.points}</div>
+
+                        {/* Banner upgrade — solo sulla prima settimana bloccata di ogni fase */}
+                        {isLocked && isFirst && (
+                          <div
+                            onClick={() => setTab("piani")}
+                            style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}
+                          >
+                            <span style={{ fontSize: 28 }}>🔒</span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'", marginBottom: 2 }}>
+                                Settimane {firstLockedWeek}–{weeks[weeks.length - 1]} bloccate
+                              </div>
+                              <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>
+                                Il piano Starter include solo le prime 5 settimane. Passa al <strong>Collaboratore Pro</strong> per sbloccare il percorso completo di 26 settimane.
+                              </div>
+                            </div>
+                            <div style={{ background: T.accent, color: "#0a0a0f", borderRadius: 50, padding: "7px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                              Sblocca →
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Missioni della settimana — dimmed se bloccata */}
+                        {wm.map(m => {
+                          const done = completedMissions.includes(m.id);
+                          return (
+                            <div
+                              key={m.id}
+                              className="mission-card"
+                              onClick={() => { if (!isLocked) setShowMission(m); else setTab("piani"); }}
+                              style={{ background: isLocked ? T.surface : done ? "rgba(62,207,142,0.06)" : T.card, border: `1px solid ${isLocked ? T.border : done ? "rgba(62,207,142,0.2)" : T.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 8, display: "flex", gap: 12, alignItems: "center", opacity: isLocked ? 0.45 : 1, cursor: isLocked ? "pointer" : "pointer" }}
+                            >
+                              <div style={{ width: 40, height: 40, borderRadius: 12, background: isLocked ? T.border : done ? "rgba(62,207,142,0.15)" : "rgba(232,197,71,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                                {isLocked ? "🔒" : done ? "✅" : m.channel === "whatsapp" ? "💬" : m.channel === "social" ? "📱" : "🤝"}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2, color: isLocked ? T.muted : T.text }}>{m.title}</div>
+                                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>{isLocked ? "Disponibile con il piano Pro" : m.kpi}</div>
+                              </div>
+                              <div style={{ color: isLocked ? T.muted : done ? T.green : T.accent, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13 }}>
+                                {isLocked ? "🔒" : `+${m.points}`}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -597,6 +707,18 @@ export default function CollaboratoreDashboard() {
               })}
             </div>
 
+            {/* Banner limite contatti per piano Starter */}
+            {!can.addContact(contacts.length) && (
+              <div onClick={() => setTab("piani")} style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 16px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 22 }}>🔒</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>Limite 20 contatti raggiunto</div>
+                  <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted }}>Passa al Collaboratore Pro per contatti illimitati.</div>
+                </div>
+                <span style={{ color: T.accent, fontWeight: 700, fontSize: 12, fontFamily: "'DM Sans'" }}>Upgrade →</span>
+              </div>
+            )}
+
             {/* Form nuovo contatto */}
             <Card style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: T.text }}>+ Nuovo Contatto</div>
@@ -619,7 +741,13 @@ export default function CollaboratoreDashboard() {
                   ))}
                 </select>
                 <textarea placeholder="Note (interessi, prossimo passo...)" rows={2} value={nc.note} onChange={e => setNc(p => ({ ...p, note: e.target.value }))} style={{ resize: "none" }} />
-                <Btn onClick={addContact}>Aggiungi</Btn>
+                <Btn
+                  onClick={addContact}
+                  disabled={!can.addContact(contacts.length)}
+                  style={{ opacity: can.addContact(contacts.length) ? 1 : 0.4 }}
+                >
+                  {can.addContact(contacts.length) ? "Aggiungi" : `🔒 Limite raggiunto (${contacts.length}/20)`}
+                </Btn>
               </div>
             </Card>
 
@@ -672,20 +800,46 @@ export default function CollaboratoreDashboard() {
         {tab === "script" && (
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Script & Obiezioni</div>
-            <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginBottom: 20 }}>Personalizzati per il livello {lvlInfo?.icon} {lvlInfo?.label}</div>
-
-            {missions.filter(m => m.script).map((m, i) => (
-              <div key={m.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, marginBottom: 12, borderLeft: `3px solid ${T.accent}` }}>
-                <div style={{ fontSize: 10, color: T.accent, fontFamily: "'DM Sans'", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{m.script.label}</div>
-                <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.text, lineHeight: 1.7, marginBottom: 12 }}>{m.script.text}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Missione: {m.title}</div>
-                  <Btn variant="soft" onClick={() => copyScript(m.script.text, m.id)} style={{ fontSize: 11, padding: "6px 14px" }}>
-                    {copiedId === m.id ? "✓ Copiato!" : "Copia"}
-                  </Btn>
+            <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginBottom: 4 }}>Personalizzati per il livello {lvlInfo?.icon} {lvlInfo?.label}</div>
+{ console.log("can.allScripts = ", can.allScripts()) }
+{  console.log("can = ", can) }
+            {!can.allScripts() && (
+              <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                <span>🔒</span>
+                <div style={{ flex: 1, fontSize: 12, fontFamily: "'DM Sans'", color: T.muted }}>
+                  Piano Starter: accesso a 3 script base. <button onClick={() => setTab("piani")} style={{ background: "none", border: "none", color: T.accent, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Passa al Pro →</button>
                 </div>
               </div>
-            ))}
+            )}
+
+            {(() => {
+              const allScripts = missions.filter(m => m.script);
+              const visibleScripts = can.allScripts() ? allScripts : allScripts.slice(0, 3);
+              const lockedCount = allScripts.length - visibleScripts.length;
+              return (
+                <>
+                  {visibleScripts.map((m, i) => (
+                    <div key={m.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, marginBottom: 12, borderLeft: `3px solid ${T.accent}` }}>
+                      <div style={{ fontSize: 10, color: T.accent, fontFamily: "'DM Sans'", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{m.script.label}</div>
+                      <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.text, lineHeight: 1.7, marginBottom: 12 }}>{m.script.text}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'" }}>Missione: {m.title}</div>
+                        <Btn variant="soft" onClick={() => copyScript(m.script.text, m.id)} style={{ fontSize: 11, padding: "6px 14px" }}>
+                          {copiedId === m.id ? "✓ Copiato!" : "Copia"}
+                        </Btn>
+                      </div>
+                    </div>
+                  ))}
+                  {lockedCount > 0 && (
+                    <div onClick={() => setTab("piani")} style={{ background: T.surface, border: `2px dashed ${T.border}`, borderRadius: 14, padding: 20, textAlign: "center", cursor: "pointer", marginBottom: 12 }}>
+                      <div style={{ fontSize: 22, marginBottom: 6 }}>🔒</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 4 }}>+{lockedCount} script bloccati</div>
+                      <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'" }}>Passa al Collaboratore Pro per sbloccarli tutti</div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Obiezioni */}
             <div style={{ marginTop: 20 }}>
@@ -712,6 +866,13 @@ export default function CollaboratoreDashboard() {
           <LeaderDashboard isEmbedded={true} />
         )}
 
+        {/* TAB PIANI */}
+        {tab === "piani" && (
+          <div style={{ padding: "0 4px" }}>
+            <PlansTab />
+          </div>
+        )}
+
       {/* Bottom Nav */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 8px", display: "flex", backdropFilter: "blur(12px)" }}>
         {[
@@ -720,6 +881,7 @@ export default function CollaboratoreDashboard() {
           { id: "contatti",  icon: "👥", label: "Contatti" },
           { id: "script",    icon: "💬", label: "Script" },
           ...((dualRole.isLeader || !!userProfile?.inviteCode) ? [{ id: "team", icon: "👑", label: `Team${dualRole.teamSize > 0 ? ` (${dualRole.teamSize})` : ""}` }] : []),
+          { id: "piani", icon: "💎", label: "Piani" },
         ].map(n => (
           <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>

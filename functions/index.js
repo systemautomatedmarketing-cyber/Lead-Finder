@@ -445,3 +445,72 @@ exports.sendWeeklyTeamDigest = onSchedule(
 );
 
 // export const api = onRequest({ region: "europe-west1" }, app);
+// ─────────────────────────────────────────────────────────────
+//  6. generatePersona
+//     POST /generatePersona
+//     Genera il profilo AI personalizzato durante l'onboarding
+//     Richiede: ANTHROPIC_API_KEY impostata come Firebase Secret
+//
+//  Setup:
+//     firebase functions:secrets:set ANTHROPIC_API_KEY
+//     → incolla la chiave da console.anthropic.com
+// ─────────────────────────────────────────────────────────────
+const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
+
+exports.generatePersona = onRequest(
+  { secrets: [anthropicKey], cors: false },
+  async (req, res) => {
+    setCors(res, req);
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    if (req.method !== "POST")   return res.status(405).json({ error: "Method not allowed" });
+
+    const { answers, basePersona } = req.body;
+    if (!answers || !basePersona)  return res.status(400).json({ error: "Missing answers or basePersona" });
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type":      "application/json",
+          "x-api-key":         anthropicKey.value(),
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model:      "claude-sonnet-4-20250514",
+          max_tokens: 800,
+          messages: [{
+            role: "user",
+            content: `Sei un esperto stratega di network marketing.
+Un nuovo collaboratore ha risposto a queste domande:
+- Ore disponibili/settimana: ${answers.tempo}
+- Obiettivo: ${answers.obiettivo}
+- Personalità: ${answers.personalita}
+- Canale preferito: ${answers.canale}
+- Paura principale: ${answers.paura}
+
+La persona base assegnata è: ${basePersona.label} — ${basePersona.desc}
+
+Genera un profilo in JSON (solo JSON puro, nessun testo prima o dopo):
+{
+  "nickname": "nome creativo (es. 'La Mamma Social')",
+  "tagline": "frase motivazionale max 12 parole",
+  "tip_paura": "consiglio su come superare la paura dichiarata",
+  "azione_immediata": "1 azione concreta da fare oggi",
+  "messaggio_tipo": "messaggio WhatsApp di esempio (max 3 righe)",
+  "forza_nascosta": "una forza che forse non ha ancora riconosciuto"
+}`,
+          }],
+        }),
+      });
+
+      const data = await response.json();
+      const text = data.content?.[0]?.text || "{}";
+      const persona = JSON.parse(text.replace(/```json|```/g, "").trim());
+      return res.json({ persona });
+
+    } catch (err) {
+      console.error("generatePersona error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);

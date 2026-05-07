@@ -4,7 +4,7 @@
 import { createContext, useContext, useMemo } from "react";
 import { useAuth } from "./AuthContext";
 import {
-  effectivePlan, planHas, isContactLimitReached,
+  effectivePlan, planHas, isContactLimitReached, hasUnlimitedScripts, scriptsLimit,
   isWeekAccessible, teamVisibleLimit, trialDaysLeft,
   isTrialActive, PLANS, STRIPE_PRICES,
 } from "../data/plans";
@@ -90,7 +90,8 @@ export function PlanProvider({ children }) {
     advancedAnalytics: () => planHas(planId, "advanced_analytics"),
     multiCompany:    () => planHas(planId, "multi_company"),
     teamVisibleLimit: () => teamVisibleLimit(planId),
-    allScripts:      () => planHas(planId, "scripts_count"),
+    allScripts:      () => hasUnlimitedScripts(planId),  // true solo se -1 (illimitati)
+    scriptsLimit:    () => scriptsLimit(planId),             // numero script disponibili (3 o -1)
   }), [planId]);
 
   const value = {

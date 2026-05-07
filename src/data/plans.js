@@ -186,6 +186,16 @@ export function planHas(planId, feature) {
   return false;
 }
 
+/** Quanti script può usare il piano (3 = limitati, -1 = illimitati) */
+export function scriptsLimit(planId) {
+  return PLANS[planId]?.limits?.scripts_count ?? 3;
+}
+
+/** Il piano ha script illimitati? */
+export function hasUnlimitedScripts(planId) {
+  return scriptsLimit(planId) === -1;
+}
+
 /** Verifica se il collaboratore ha raggiunto il limite contatti */
 export function isContactLimitReached(planId, currentCount) {
   const max = PLANS[planId]?.limits?.contacts_max;

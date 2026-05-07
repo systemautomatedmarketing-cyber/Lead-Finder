@@ -174,44 +174,32 @@ function matchPersona(answers) {
 }
 
 // ── Chiamata AI per personalizzare la persona ─────────────────
+// La chiamata passa attraverso la Firebase Function "generatePersona"
+// per non esporre la API key nel frontend
 async function generateAIPersona(answers, basePersona) {
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const FUNCTIONS_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL
+      || `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+
+    const response = await fetch(`${FUNCTIONS_URL}/generatePersona`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{
-          role: "user",
-          content: `Sei un esperto stratega di network marketing per Sorgenta (prodotti wellness, beauty, profumi, integratori, cura casa).
-
-Un nuovo collaboratore ha risposto a queste domande:
-- Ore disponibili/settimana: ${answers.tempo}
-- Obiettivo: ${answers.obiettivo}
-- Personalità: ${answers.personalita}
-- Canale preferito: ${answers.canale}
-- Paura principale: ${answers.paura}
-
-La persona base assegnata è: ${basePersona.label} — ${basePersona.desc}
-
-Genera un profilo personalizzato in JSON (solo JSON, nessun testo prima o dopo):
-{
-  "nickname": "nome creativo per questa persona specifica (es. 'La Mamma Social', 'Il Networker Veloce')",
-  "tagline": "frase motivazionale personalizzata di max 12 parole",
-  "tip_paura": "consiglio specifico su come superare la paura dichiarata in 2 righe",
-  "azione_immediata": "1 azione concreta da fare entro oggi, personalizzata sul canale preferito",
-  "messaggio_tipo": "un messaggio WhatsApp di esempio personalizzato su obiettivo e canale (max 3 righe)",
-  "forza_nascosta": "una forza che forse non ha ancora riconosciuto in se stesso/a"
-}`
-        }],
-      }),
+      body: JSON.stringify({ answers, basePersona }),
     });
+
+    if (!response.ok) throw new Error("Function error");
     const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
+    return data.persona || null;
   } catch {
-    return null;
+    // Fallback: usa solo i dati base senza AI
+    return {
+      nickname:         basePersona.label,
+      tagline:          basePersona.tagline || "Ogni grande risultato inizia con un piccolo passo.",
+      tip_paura:        "Ricorda: la paura è normale all'inizio. Fai una piccola azione oggi — diventa più facile ogni giorno.",
+      azione_immediata: "Scrivi 3 nomi di persone a cui potresti parlare oggi. Solo i nomi, nessuna pressione.",
+      messaggio_tipo:   "Ciao [Nome]! Ho scoperto qualcosa che potrebbe interessarti. Hai 5 minuti questa settimana?",
+      forza_nascosta:   "La tua autenticità è il tuo superpotere. Le persone si fidano di chi è genuino.",
+    };
   }
 }
 
@@ -239,7 +227,12 @@ export default function OnboardingWizard({ onComplete }) {
       setStep(5); // loading
       const base = matchPersona(newAnswers);
       setPersona(base);
-      const ai = await generateAIPersona(newAnswers, base);
+      // Chiama AI solo se il piano lo permette.
+      // effectivePlan considera anche il trial attivo (→ pro durante i 14gg)
+      const { planHas, effectivePlan: getEffectivePlan } = await import("../data/plans");
+      const currentPlanId = getEffectivePlan(userProfile);
+      const aiEnabled = planHas(currentPlanId, "ai_persona");
+      const ai = aiEnabled ? await generateAIPersona(newAnswers, base) : null;
       setAiData(ai);
       setStep(6); // risultato
     }

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import WeeklyReport from "./WeeklyReport";
 import { PaywallModal } from "./PricingScreen";
 import LeaderMissions from "./LeaderMissions";
+import PlansTab from "./PlansTab";
 import UplineConnect from "./UplineConnect";
 import NotificationSettings from "./NotificationSettings";
 import { exportTeamCSV } from "../utils/exportCSV";
@@ -193,6 +194,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             { id: "rischio",  label: `⚠️ A Rischio (${atRisk.length})` },
             { id: "top",      label: `⭐ Top (${topPerformers.length})` },
             { id: "missioni", label: "⚡ Missioni" },
+            { id: "piani",    label: "💎 Piani" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
               {t.label}
@@ -341,6 +343,11 @@ export default function LeaderDashboard({ isEmbedded = false }) {
 
         {/* MISSIONI LEADER */}
         {tab === "missioni" && <LeaderMissions />}
+        {tab === "piani" && (
+          <div style={{ padding: "0 4px" }}>
+            <PlansTab />
+          </div>
+        )}
       </div>
 );
       {/* Bottom nav — solo in modalità standalone */}
