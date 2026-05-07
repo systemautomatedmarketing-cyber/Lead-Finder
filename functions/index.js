@@ -46,6 +46,8 @@ function setCors(res, req) {
     "http://localhost:5174",
     "https://lead-finder-b5602.web.app",
     "https://lead-finder-b5602.firebaseapp.com",
+    "https://lead-finder-6qt.pages.dev",
+    "https://applf.webstudioams.it",
     // "https://www.leadfinder.app",  // ← aggiungi il tuo dominio finale
   ];
   const origin = req.headers.origin;
