@@ -40,6 +40,7 @@ export default function LeaderMissions() {
 
   const recruitEnabled  = userProfile?.leaderMissionsEnabled || false;
   const recruitStarted  = userProfile?.leaderMissionsStarted || false;
+  const isLeader = userProfile?.role === "leader";
 
   // ── Carica completamenti da Firestore ─────────────────────
   useEffect(() => {
@@ -257,7 +258,8 @@ export default function LeaderMissions() {
             {todayPoints > 0 && <span style={{ color: T.accent, marginLeft: 6 }}>+{todayPoints} oggi</span>}
           </div>
         </div>
-        {!recruitEnabled && (
+
+        {isLeader && !recruitEnabled && (
           <button
             onClick={() => setShowRecruitToggle(true)}
             style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, color: T.accent, borderRadius: 50, padding: "8px 14px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer" }}

@@ -173,7 +173,7 @@ exports.stripeWebhook = onRequest(
             subId: data.subscription,
             createdAt: new Date().toISOString(),
           });
-          console.log(`✅ Piano attivato: ${plan} per ${uid}`);
+          console.log(`✅ OK Piano attivato: ${plan} per ${uid}`);
           break;
         }
 

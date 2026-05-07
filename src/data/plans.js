@@ -28,7 +28,7 @@ export const PLANS = {
 
     limits: {
       contacts_max:       20,       // max contatti salvabili
-      missions_weeks:     1,        // solo settimana 1
+      missions_weeks:     5,        // solo 5 settimane
       scripts_count:      3,        // solo script base
       team_visible:       5,        // solo leader: collaboratori visibili (0 = N/A)
       ai_persona:         false,    // onboarding AI disabilitato
@@ -40,7 +40,7 @@ export const PLANS = {
     },
 
     features: [
-      { label: "Settimana 1 completa",            included: true  },
+      { label: "Percorso per 5 settimane",        included: true  },
       { label: "Fino a 20 contatti",              included: true  },
       { label: "3 script base",                   included: true  },
       { label: "Obiettivo settimanale",           included: true  },
@@ -145,7 +145,7 @@ export const PLANS = {
 
     limits: {
       contacts_max:       -1,
-      missions_weeks:     1,
+      missions_weeks:     5,
       scripts_count:      3,
       team_visible:       5,        // vede solo 5 collaboratori
       ai_persona:         false,
@@ -195,7 +195,7 @@ export function isContactLimitReached(planId, currentCount) {
 
 /** Verifica se la settimana è accessibile con il piano */
 export function isWeekAccessible(planId, week) {
-  const maxWeeks = PLANS[planId]?.limits?.missions_weeks || 1;
+  const maxWeeks = PLANS[planId]?.limits?.missions_weeks || 5;
   if (maxWeeks === -1) return true;
   return week <= maxWeeks;
 }
