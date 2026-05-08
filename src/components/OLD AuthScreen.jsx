@@ -3,41 +3,6 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, ThemeToggle } from "../context/ThemeContext";
 
-// ── Traduzione errori Firebase Auth in italiano ──────────────
-function translateAuthError(code) {
-  const map = {
-    // Credenziali
-    "auth/invalid-credential":        "Email o password non corretti. Riprova.",
-    "auth/invalid-email":             "Formato email non valido.",
-    "auth/user-not-found":            "Nessun account trovato con questa email.",
-    "auth/wrong-password":            "Password non corretta.",
-    "auth/invalid-password":          "Password non corretta.",
-    // Account
-    "auth/email-already-in-use":      "Questa email è già registrata. Prova ad accedere.",
-    "auth/user-disabled":             "Questo account è stato disabilitato. Contatta il supporto.",
-    // Password
-    "auth/weak-password":             "Password troppo corta. Usa almeno 6 caratteri.",
-    "auth/missing-password":          "Inserisci una password.",
-    // Rete / tecnici
-    "auth/network-request-failed":    "Errore di connessione. Controlla la tua rete e riprova.",
-    "auth/too-many-requests":         "Troppi tentativi. Attendi qualche minuto prima di riprovare.",
-    "auth/internal-error":            "Errore interno. Riprova tra qualche secondo.",
-    "auth/operation-not-allowed":     "Metodo di accesso non abilitato. Contatta il supporto.",
-    // Codice invito / app
-    "auth/expired-action-code":       "Codice scaduto. Richiedine uno nuovo.",
-    "auth/invalid-action-code":       "Codice non valido.",
-  };
-  // Cerca il codice esatto
-  if (map[code]) return map[code];
-  // Cerca per sottostringa (es. messaggio lungo con codice embedded)
-  for (const [key, val] of Object.entries(map)) {
-    if (code && code.includes(key)) return val;
-  }
-  // Messaggi custom dell'app (es. "Codice leader non valido")
-  if (code && code.length < 120) return code;
-  return "Si è verificato un errore. Riprova.";
-}
-
 const LEVELS_INFO = [
   { id: "principiante", icon: "🌱", label: "Principiante", desc: "Sto iniziando ora — ho bisogno di guida passo per passo" },
   { id: "in_crescita",  icon: "🌿", label: "In Crescita",  desc: "Ho qualche esperienza — voglio espandere canali e ritmo" },
@@ -187,7 +152,7 @@ export default function AuthScreen() {
       else if (mode === "register_collab") await registerCollaboratore({ name, email, password, inviteCode, level });
       else if (mode === "register_leader") await registerLeader({ name, email, password, leaderCode, uplineCode });
     } catch (err) {
-      setError(translateAuthError(err.code || err.message));
+      setError(err.message.replace("Firebase: ", "").replace(/\(auth.*\)/, ""));
     } finally {
       setLoading(false);
     }

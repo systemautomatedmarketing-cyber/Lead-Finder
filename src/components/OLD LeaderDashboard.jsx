@@ -12,7 +12,7 @@ import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { teamVisibleLimit } from "../data/plans";
 import { usePlan } from "../context/PlanContext";
-import { useTheme, ThemeToggle, ThemePicker } from "../context/ThemeContext";
+import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { useDualRole } from "../hooks/useDualRole";
 
 const C = {
@@ -44,7 +44,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const { T } = useTheme();
   const { promoteToLeader, promoting } = useDualRole();
   const [team, setTeam]         = useState([]);
-  const [tab, setTab]           = useState("missioni");
+  const [tab, setTab]           = useState("team");
   const [toast, setToast]       = useState(null);
   const [selectedMember, setSelectedMember]       = useState(null);
   const [showReport, setShowReport]               = useState(false);
@@ -194,8 +194,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             { id: "rischio",  label: `⚠️ A Rischio (${atRisk.length})` },
             { id: "top",      label: `⭐ Top (${topPerformers.length})` },
             { id: "missioni", label: "⚡ Missioni" },
-            { id: "piani",        label: "💎 Piani" },
-            { id: "impostazioni", label: "⚙️ Impost." },
+            { id: "piani",    label: "💎 Piani" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
               {t.label}
@@ -347,30 +346,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         {tab === "piani" && (
           <div style={{ padding: "0 4px" }}>
             <PlansTab />
-          </div>
-        )}
-        {tab === "impostazioni" && (
-          <div style={{ padding: "0 4px" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "'Playfair Display'", marginBottom: 20 }}>
-              ⚙️ Impostazioni
-            </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 16 }}>
-                🎨 Aspetto
-              </div>
-              <ThemePicker />
-            </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 10 }}>
-                👤 Account
-              </div>
-              <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 14 }}>
-                {userProfile?.email}
-              </div>
-              <button onClick={logout} style={{ background: T.redBg, border: `1px solid ${T.red}44`, color: T.red, borderRadius: 50, padding: "10px 20px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                Esci dall'account
-              </button>
-            </div>
           </div>
         )}
       </div>

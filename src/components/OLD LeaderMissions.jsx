@@ -249,39 +249,6 @@ export default function LeaderMissions() {
         </div>
       )}
 
-      {/* Banner onboarding — appare solo se il team è vuoto e non ha ancora condiviso il codice */}
-      {(userProfile?.teamSize === 0 || !userProfile?.teamSize) && !recruitStarted && (
-        <div style={{ background: T.accentBg, border: `2px solid ${T.accentBorder}`, borderRadius: 16, padding: "18px 18px", marginBottom: 20, display: "flex", gap: 14, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 32, flexShrink: 0 }}>🚀</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: T.accent, fontFamily: "'Playfair Display'", marginBottom: 6 }}>
-              Prima cosa: fai registrare i tuoi collaboratori!
-            </div>
-            <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.text, lineHeight: 1.7, marginBottom: 12 }}>
-              Condividi il tuo <strong>codice invito</strong> con chi vuole entrare nel tuo team.
-              Ogni collaboratore lo usa in fase di registrazione — e apparirà subito nella tua tab Team.
-            </div>
-            {userProfile?.inviteCode ? (
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{ background: T.card, border: `1px solid ${T.accent}`, borderRadius: 10, padding: "8px 16px", fontFamily: "'DM Sans'", fontWeight: 900, fontSize: 18, color: T.accent, letterSpacing: 3 }}>
-                  {userProfile.inviteCode}
-                </div>
-                <button
-                  onClick={() => { navigator.clipboard?.writeText(userProfile.inviteCode); fire("Codice copiato! 📋"); }}
-                  style={{ background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "9px 18px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-                >
-                  Copia il codice
-                </button>
-              </div>
-            ) : (
-              <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted }}>
-                Vai alla tab <strong>Team</strong> per generare il tuo codice invito.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <div>

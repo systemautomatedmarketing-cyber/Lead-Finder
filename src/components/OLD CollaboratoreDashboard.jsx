@@ -7,7 +7,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { useTheme, ThemeToggle, ThemePicker } from "../context/ThemeContext";
+import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { MISSIONS_BY_LEVEL, LEVELS, TOTAL_WEEKS, getPhase } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import NotificationSettings from "./NotificationSettings";
@@ -873,32 +873,6 @@ export default function CollaboratoreDashboard() {
           </div>
         )}
 
-        {/* TAB IMPOSTAZIONI */}
-        {tab === "impostazioni" && (
-          <div style={{ padding: "0 4px" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "'Playfair Display'", marginBottom: 20 }}>
-              ⚙️ Impostazioni
-            </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 16 }}>
-                🎨 Aspetto
-              </div>
-              <ThemePicker />
-            </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 10 }}>
-                👤 Account
-              </div>
-              <div style={{ fontSize: 13, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 14 }}>
-                {userProfile?.email}
-              </div>
-              <button onClick={logout} style={{ background: T.redBg, border: `1px solid ${T.red}44`, color: T.red, borderRadius: 50, padding: "10px 20px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                Esci dall'account
-              </button>
-            </div>
-          </div>
-        )}
-
       {/* Bottom Nav */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 8px", display: "flex", backdropFilter: "blur(12px)" }}>
         {[
@@ -907,8 +881,7 @@ export default function CollaboratoreDashboard() {
           { id: "contatti",  icon: "👥", label: "Contatti" },
           { id: "script",    icon: "💬", label: "Script" },
           ...((dualRole.isLeader || !!userProfile?.inviteCode) ? [{ id: "team", icon: "👑", label: `Team${dualRole.teamSize > 0 ? ` (${dualRole.teamSize})` : ""}` }] : []),
-          { id: "piani",       icon: "💎", label: "Piani" },
-          { id: "impostazioni", icon: "⚙️", label: "Impost." },
+          { id: "piani", icon: "💎", label: "Piani" },
         ].map(n => (
           <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>
