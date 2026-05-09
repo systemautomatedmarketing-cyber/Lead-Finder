@@ -7,10 +7,9 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { useTheme, ThemeToggle, ThemePicker, ColorPickerDropdown } from "../context/ThemeContext";
+import { useTheme, ThemeToggle, ThemePicker } from "../context/ThemeContext";
 import { MISSIONS_BY_LEVEL, LEVELS, TOTAL_WEEKS, getPhase } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
-import HomeDashboard from "./HomeDashboard";
 import NotificationSettings from "./NotificationSettings";
 import PlansTab from "./PlansTab";
 import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
@@ -309,6 +308,10 @@ export default function CollaboratoreDashboard() {
             {/* Why */}
             {showMission.why && (
               <div style={{ background: `rgba(107,107,138,0.1)`, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12, marginBottom: 20 }}>
+{/* TASTO X IN ALTO A DESTRA */}
+      <button  onClick={() => setShowMission(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: T.muted, fontSize: "24px", cursor: "pointer", zIndex: 10, padding: "5px" }} >
+        ✕
+      </button>
                 <div style={{ fontSize: 11, color: T.purple, fontFamily: "'DM Sans'", fontWeight: 700, marginBottom: 4 }}>Perché questa missione?</div>
                 <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.6 }}>{showMission.why}</div>
               </div>
@@ -321,7 +324,25 @@ export default function CollaboratoreDashboard() {
                 Segna come Completata (+{showMission.points}pt)
               </Btn>
             )}
+{/* SCRITTA TORNA INDIETRO IN FONDO */}
+      <div style={{ textAlign: "center", marginTop: 20, paddingBottom: 10 }}>
+        <button
+          onClick={() => setShowMission(null)}
+          style={{
+            background: "none",
+            border: "none",
+            color: T.muted,
+            fontFamily: "'DM Sans'",
+            fontSize: "14px",
+            cursor: "pointer",
+            textDecoration: "underline"
+          }}
+        >
+          Torna indietro
+        </button>
+      </div>
           </div>
+
         </div>
       )}
 
@@ -352,7 +373,6 @@ export default function CollaboratoreDashboard() {
           >
             {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
           </button>
-          <ColorPickerDropdown />
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "6px 10px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>↩</button>
         </div>
@@ -404,30 +424,186 @@ export default function CollaboratoreDashboard() {
         {/* ── DASHBOARD ── */}
         {tab === "dashboard" && (
           <div>
-            <HomeDashboard
-              userProfile={userProfile}
-              T={T}
-              currentWeek={currentWeek}
-              weeklyClients={weeklyClients}
-              weekGoal={weekGoal}
-              completedMissions={completedMissions}
-              contacts={contacts}
-              thisWeekMissions={thisWeekMissions}
-              progress={progress}
-              allMissionsDone={allMissionsDone}
-              leadsNeedingFollowup={leadsNeedingFollowup}
-              showRecoveryBanner={showRecoveryBanner}
-              can={can}
-              onAdvanceWeek={advanceWeek}
-              onTabChange={setTab}
-              onRegisterClient={registerClient}
-              onShowMission={setShowMission}
-              onShowRecovery={() => setShowRecovery(true)}
-            />
+            <Card style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", marginBottom: 2 }}>Settimana {currentWeek} — Obiettivo</div>
+                  <div style={{ fontSize: 24, fontWeight: 900 }}>{weeklyClients} <span style={{ fontSize: 14, color: T.muted }}>/ {weekGoal}</span></div>
+                </div>
+                <div style={{ fontSize: 36 }}>{weeklyClients >= weekGoal ? "🏆" : "🎯"}</div>
+              </div>
+              <div style={{ background: T.border, borderRadius: 50, height: 8, marginBottom: 14 }}>
+                <div style={{ height: 8, borderRadius: 50, background: `linear-gradient(90deg, ${T.accent}, ${T.accentSoft})`, width: `${progress}%`, transition: "width 0.5s" }} />
+              </div>
+              {weeklyClients >= weekGoal ? (
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ flex: 1, fontSize: 13, fontFamily: "'DM Sans'", color: T.green }}>🎉 Obiettivo raggiunto!</div>
+                  {currentWeek < TOTAL_WEEKS && (
+                    <Btn variant="soft" onClick={advanceWeek} style={{ fontSize: 12 }}>
+                      Settimana {currentWeek + 1} →
+                    </Btn>
+                  )}
+                </div>
+              ) : allMissionsDone ? (
+                // Tutte le missioni completate → mostra bottone avanza settimana
+                <div>
+                  <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, marginBottom: 10, textAlign: "center", lineHeight: 1.5 }}>
+                    ✅ Tutte le missioni completate!<br />Registra i tuoi risultati nella sezione Contatti, poi avanza.
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Btn variant="soft" onClick={() => setTab("contatti")} style={{ flex: 1, fontSize: 12, textAlign: "center" }}>
+                      📋 Vai ai Contatti
+                    </Btn>
+                    {currentWeek < TOTAL_WEEKS && (
+                      <Btn variant="ghost" onClick={advanceWeek} style={{ flex: 1, fontSize: 12, textAlign: "center" }}>
+                        Settimana {currentWeek + 1} →
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Missioni ancora in corso → piccolo bottone + link a contatti
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setTab("contatti")}
+                    style={{ flex: 1, background: T.accentBg, border: `1px solid ${T.accentBorder}`, color: T.accent, borderRadius: 50, padding: "10px 12px", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                  >
+                    + Aggiungi Lead / Cliente
+                  </button>
+                </div>
+              )}
+            </Card>
+
+            {/* Roadmap 26 settimane — 3 fasi */}
+            <Card style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>🗺 Percorso 26 Settimane</div>
+                <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted }}>Sett. {currentWeek}/{TOTAL_WEEKS}</div>
+              </div>
+              {/* Barra progresso globale */}
+              <div style={{ background: T.border, borderRadius: 50, height: 4, marginBottom: 10 }}>
+                <div style={{ height: 4, borderRadius: 50, background: `linear-gradient(90deg, ${T.accent}, ${T.accentSoft || T.accent})`, width: `${Math.min((currentWeek / TOTAL_WEEKS) * 100, 100)}%`, transition: "width 0.5s" }} />
+              </div>
+              {/* Fase corrente */}
+              <div style={{ fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 700, color: getPhase(currentWeek).color, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                {getPhase(currentWeek).label}
+              </div>
+              {/* 3 fasi orizzontali scrollabili */}
+              {[
+                { n: 1, label: "Fase 1", range: [1, 7],   color: "#1A7A4A" },
+                { n: 2, label: "Fase 2", range: [8, 16],  color: "#1A5FA8" },
+                { n: 3, label: "Fase 3", range: [17, 26], color: "#B8860B" },
+              ].map(phase => (
+                <div key={phase.n} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontFamily: "'DM Sans'", fontWeight: 700, color: phase.color, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>
+                    {phase.label} · Sett {phase.range[0]}-{phase.range[1]}
+                  </div>
+                  <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 2 }}>
+                    {Array.from({ length: phase.range[1] - phase.range[0] + 1 }, (_, i) => phase.range[0] + i).map(w => {
+                      const t      = lvlInfo?.weeklyTarget?.[w - 1] || w;
+                      const isPast = w < currentWeek;
+                      const isCurr = w === currentWeek;
+                      return (
+                        <div key={w} style={{ flexShrink: 0, textAlign: "center", width: 30 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: "50%", margin: "0 auto 2px", background: isPast ? phase.color : isCurr ? T.accent : T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: isPast || isCurr ? "#fff" : T.muted, boxShadow: isCurr ? `0 0 0 2px ${T.accent}` : "none" }}>
+                            {isPast ? "✓" : w}
+                          </div>
+                          <div style={{ fontSize: 7, fontFamily: "'DM Sans'", color: isCurr ? T.accent : T.muted }}>{t}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </Card>
+
+            {/* Banner follow-up lead in scadenza */}
+            {leadsNeedingFollowup.length > 0 && (
+              <div onClick={() => setTab("contatti")} style={{ background: "rgba(107,79,168,0.1)", border: "1px solid rgba(107,79,168,0.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 24 }}>⏰</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#6B4FA8", fontFamily: "'Playfair Display'" }}>
+                    {leadsNeedingFollowup.length} lead {leadsNeedingFollowup.length === 1 ? "aspetta" : "aspettano"} il follow-up
+                  </div>
+                  <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted }}>Tocca per vedere chi contattare oggi</div>
+                </div>
+                <span style={{ color: T.muted }}>→</span>
+              </div>
+            )}
+
+            {/* Recovery banner — appare dalla settimana 3, solo se piano lo permette */}
+            {showRecoveryBanner && (
+              can.useRecovery() ? (
+                <div onClick={() => setShowRecovery(true)} style={{ background: T.redBg, border: `1px solid ${T.red}44`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 28 }}>🔄</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.red, fontFamily: "'Playfair Display'", marginBottom: 2 }}>Nessun risultato ancora?</div>
+                    <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Analizziamo il blocco e creiamo un piano personalizzato per te.</div>
+                  </div>
+                  <span style={{ color: T.muted, fontSize: 18 }}>→</span>
+                </div>
+              ) : (
+                <div onClick={() => setTab("piani")} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 28 }}>🔒</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 2 }}>Sistema Recovery — Piano Pro</div>
+                    <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Sblocca il piano personalizzato anti-blocco passando al Collaboratore Pro.</div>
+                  </div>
+                  <span style={{ color: T.accent, fontSize: 12, fontFamily: "'DM Sans'", fontWeight: 700 }}>Scopri →</span>
+                </div>
+              )
+            )}
+
+            {/* Banner settimana bloccata per piano Starter */}
+            {!can.accessWeek(currentWeek) && (
+              <div onClick={() => setTab("piani")} style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "14px 16px", marginBottom: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 28 }}>🔒</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.accent, fontFamily: "'Playfair Display'" }}>Settimana {currentWeek} bloccata</div>
+                  <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, lineHeight: 1.5 }}>Il piano Starter include solo 5 settimane. Passa al Pro per il percorso completo di 26 settimane.</div>
+                </div>
+                <span style={{ color: T.accent, fontWeight: 700, fontSize: 12, fontFamily: "'DM Sans'" }}>Sblocca →</span>
+              </div>
+            )}
+
+            {/* Missioni settimana corrente */}
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>⚡ Missioni Settimana {currentWeek}</div>
+            {thisWeekMissions.length === 0 ? (
+              <Card><div style={{ fontFamily: "'DM Sans'", fontSize: 13, color: T.muted, textAlign: "center", padding: "16px 0" }}>Nessuna missione per questa settimana al tuo livello.</div></Card>
+            ) : thisWeekMissions.map(m => {
+              const done = completedMissions.includes(m.id);
+              return (
+                <div key={m.id} className="mission-card" onClick={() => setShowMission(m)} style={{ background: done ? "rgba(62,207,142,0.07)" : T.card, border: `1px solid ${done ? "rgba(62,207,142,0.25)" : T.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, display: "flex", gap: 12, alignItems: "center" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: done ? "rgba(62,207,142,0.15)" : "rgba(232,197,71,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                    {done ? "✅" : m.channel === "whatsapp" ? "💬" : m.channel === "social" ? "📱" : "🤝"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{m.title}</div>
+                    <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Sans'", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.kpi}</div>
+                  </div>
+                  <div style={{ color: done ? T.green : T.accent, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>+{m.points}pt</div>
+                </div>
+              );
+            })}
+
+            {/* Stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 14 }}>
+              {[
+                { label: "Missioni", value: completedMissions.length, icon: "⚡" },
+                { label: "Contatti", value: contacts.length, icon: "👥" },
+                { label: "Convertiti", value: contacts.filter(c => c.status === "convertito" || c.status === "collaboratore").length, icon: "✅" },
+              ].map(s => (
+                <Card key={s.label} style={{ padding: 12, textAlign: "center" }}>
+                  <div style={{ fontSize: 18 }}>{s.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: T.accent, lineHeight: 1.2 }}>{s.value}</div>
+                  <div style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Sans'", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{s.label}</div>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
-                {/* ── MISSIONI ── */}
+        {/* ── MISSIONI ── */}
         {tab === "missioni" && (
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Tutte le Missioni</div>

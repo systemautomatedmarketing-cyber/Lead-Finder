@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import WeeklyReport from "./WeeklyReport";
 import { PaywallModal } from "./PricingScreen";
 import LeaderMissions from "./LeaderMissions";
-import HomeLeader from "./HomeLeader";
 import PlansTab from "./PlansTab";
 import UplineConnect from "./UplineConnect";
 import NotificationSettings from "./NotificationSettings";
@@ -45,7 +44,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const { T } = useTheme();
   const { promoteToLeader, promoting } = useDualRole();
   const [team, setTeam]         = useState([]);
-  const [tab, setTab]           = useState("home");
+  const [tab, setTab]           = useState("missioni");
   const [toast, setToast]       = useState(null);
   const [selectedMember, setSelectedMember]       = useState(null);
   const [showReport, setShowReport]               = useState(false);
@@ -188,16 +187,15 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         </div>
 
         {/* Tab nav */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}> 
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           {[
-            { id: "home",     label: "🏠 Home" },
             { id: "team",     label: "👥 Team" },
             { id: "rete",     label: `🌐 Rete (${deepTeam.length})` },
-            { id: "rischio",  label: `⚠️ Rischio (${atRisk.length})` },
+            { id: "rischio",  label: `⚠️ A Rischio (${atRisk.length})` },
             { id: "top",      label: `⭐ Top (${topPerformers.length})` },
             { id: "missioni", label: "⚡ Missioni" },
             { id: "piani",        label: "💎 Piani" },
-            { id: "impostazioni", label: "⚙️ Impost." }, 
+            { id: "impostazioni", label: "⚙️ Impost." },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
               {t.label}
@@ -206,20 +204,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         </div>
 
         {/* TEAM completo */}
-        {tab === "home" && (
-          <div>
-            <HomeLeader
-              team={team}
-              deepTeam={deepTeam}
-              userProfile={userProfile}
-              T={T}
-              onTabChange={setTab}
-              fire={fire}
-              getMemberStatus={getMemberStatus}
-            />
-          </div>
-        )}
-
         {tab === "team" && (
           <div>
             {team.length === 0 ? (
@@ -502,7 +486,6 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           >
             {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
           </button>
-          <ColorPickerDropdown />
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>Esci</button>
         </div>

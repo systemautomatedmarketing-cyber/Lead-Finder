@@ -1,7 +1,7 @@
 // src/components/AuthScreen.jsx
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useTheme, ThemeToggle, ThemePicker, ColorPickerDropdown } from "../context/ThemeContext";
+import { useTheme, ThemeToggle } from "../context/ThemeContext";
 
 // ── Traduzione errori Firebase Auth in italiano ──────────────
 function translateAuthError(code) {
@@ -274,8 +274,7 @@ export default function AuthScreen() {
       `}</style>
 
       {/* Toggle tema */}
-      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 10, display: "flex", gap: 8, alignItems: "center" }}>
-        <ColorPickerDropdown />
+      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 10 }}>
         <ThemeToggle />
       </div>
 

@@ -141,6 +141,12 @@ export default function LeaderMissions() {
       {showMission && (
         <div onClick={() => setShowMission(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 200, display: "flex", alignItems: "flex-end" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "24px 24px 0 0", width: "100%", maxHeight: "88vh", overflowY: "auto", padding: 24, borderTop: `3px solid ${T.accent}` }}>
+
+{/* Tasto X di chiusura */}
+      <button onClick={() => setShowMission(null)} style={{position: "absolute", top: 16, right: 16, background: "none", border: "none", color: T.muted, fontSize: 24, cursor: "pointer", fontWeight: "bold", zIndex: 10 }} >
+        ✕
+      </button>
+
             {/* Header missione */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
               <div style={{ flex: 1 }}>
@@ -213,6 +219,13 @@ export default function LeaderMissions() {
                 {saving ? "Salvataggio..." : `Segna come Completata (+${showMission.points}pt)`}
               </button>
             )}
+
+{/* Scritta Torna Indietro in fondo */}
+      <div style={{ textAlign: "center", marginTop: 20, paddingBottom: 10 }}>
+        <button onClick={() => setShowMission(null)} style={{ background: "none", border: "none", color: T.muted, fontFamily: "'DM Sans'", fontSize: 14, cursor: "pointer", textDecoration: "underline" }} >
+          Torna indietro
+        </button>
+      </div>
           </div>
         </div>
       )}
