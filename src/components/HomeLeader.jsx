@@ -152,7 +152,7 @@ export default function HomeLeader({
       </div>
 
       {/* ── SALUTE DEL TEAM ─────────────────────────────── */}
-      <div style={{ ...card(), background: `linear-gradient(135deg, ${T.surface}, ${T.card})` }}>
+      <div id="tour-team-health" style={{ ...card(), background: `linear-gradient(135deg, ${T.surface}, ${T.card})` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
@@ -192,7 +192,7 @@ export default function HomeLeader({
 
       {/* ── ALERT INTELLIGENTI ──────────────────────────── */}
       {analysis.alerts.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
+        <div id="tour-alerts" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, fontFamily: "'DM Sans'", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
             🎯 Azioni Prioritarie
           </div>

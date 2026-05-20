@@ -161,7 +161,7 @@ export default function HomeDashboard({
       </div>
 
       {/* ── MOMENTUM BAR ─────────────────────────────────── */}
-      <div style={{ ...card(), padding: "14px 16px" }}>
+      <div id="tour-momentum" style={{ ...card(), padding: "14px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: mom.color, fontFamily: "'DM Sans'" }}>
@@ -230,6 +230,7 @@ export default function HomeDashboard({
       {/* ── MISSIONE PRINCIPALE DEL GIORNO ───────────────── */}
       {missioneDelGiorno && (
         <div
+          id="tour-mission-card"
           onClick={() => onShowMission(missioneDelGiorno)}
           style={{ ...card(), background: T.accentBg, border: `2px solid ${T.accent}`, cursor: "pointer", position: "relative", overflow: "hidden" }}
         >
@@ -303,7 +304,7 @@ export default function HomeDashboard({
             </button>
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div id="tour-contacts-btn" style={{ display: "flex", gap: 8 }}>
             <button
               onClick={onRegisterClient}
               style={{ flex: 1, background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "11px 0", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 14, cursor: "pointer" }}

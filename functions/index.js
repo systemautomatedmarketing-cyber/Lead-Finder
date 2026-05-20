@@ -32,10 +32,16 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 // Aggiorna questi ID dopo aver creato i prodotti su dashboard.stripe.com
 const PRICE_TO_PLAN = {
   // Price ID reali da src/data/plans.js
-  "price_1TTNXeF3HfLtoUWm95wqQjb0": "collaboratore_pro",
-  "price_1TTNYBF3HfLtoUWmwAL8ASlp":  "collaboratore_pro",
-  "price_1TTNZwF3HfLtoUWmiiJX16Tq": "leader_pro",
-  "price_1TTNaHF3HfLtoUWmkzJriJ32":  "leader_pro",
+//  "price_1TTNXeF3HfLtoUWm95wqQjb0": "collaboratore_pro",	//9,99€ mese
+//  "price_1TTNYBF3HfLtoUWmwAL8ASlp":  "collaboratore_pro",     //89,99€ anno
+//  "price_1TTNZwF3HfLtoUWmiiJX16Tq": "leader_pro",		//24,99€ mese
+//  "price_1TTNaHF3HfLtoUWmkzJriJ32":  "leader_pro",		//219,99€ anno
+
+  "price_1TW1IyF3HfLtoUWmI1fQAK2g": "collaboratore_pro",	//4.90€ mese
+  "price_1TW1O4F3HfLtoUWmt5qzz8bO":  "collaboratore_pro",	//44,90€ anno
+  "price_1TW1RXF3HfLtoUWmoOxBrDcY": "leader_pro",		//10,90€ mese
+  "price_1TW1RqF3HfLtoUWmk9AfWUQW":  "leader_pro",		//95,90€ anno
+
 };
 
 // ── CORS — domini autorizzati ─────────────────────────────────

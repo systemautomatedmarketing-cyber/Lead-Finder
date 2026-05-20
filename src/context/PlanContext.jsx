@@ -5,7 +5,7 @@ import { createContext, useContext, useMemo } from "react";
 import { useAuth } from "./AuthContext";
 import {
   effectivePlan, planHas, isContactLimitReached, hasUnlimitedScripts, scriptsLimit,
-  isWeekAccessible, teamVisibleLimit, trialDaysLeft,
+  isWeekAccessible, teamVisibleLimit, trialDaysLeft, TRIAL_UPGRADE_AFTER,
   isTrialActive, PLANS, STRIPE_PRICES,
 } from "../data/plans";
 
@@ -21,8 +21,14 @@ export function PlanProvider({ children }) {
 
   const planId   = effectivePlan(userProfile);
   const plan     = PLANS[planId];
-  const onTrial  = isTrialActive(userProfile);
-  const daysLeft = trialDaysLeft(userProfile?.trialStartedAt);
+  const onTrial        = isTrialActive(userProfile);
+  const daysLeft       = trialDaysLeft(userProfile?.trialStartedAt);
+  // Dopo TRIAL_UPGRADE_AFTER giorni dall'inizio del trial → mostra il bottone acquisto
+  const trialStarted   = userProfile?.trialStartedAt;
+  const daysInTrial    = trialStarted
+    ? Math.floor((new Date() - (trialStarted?.toDate ? trialStarted.toDate() : new Date(trialStarted))) / (1000 * 60 * 60 * 24))
+    : 0;
+  const canUpgradeEarly = onTrial && daysInTrial >= TRIAL_UPGRADE_AFTER;
   const isPro    = planId === "collaboratore_pro" || planId === "leader_pro";
 
   // ── Attiva trial (chiamato al primo accesso dopo registrazione) ──
@@ -100,6 +106,7 @@ export function PlanProvider({ children }) {
     isPro,
     onTrial,
     daysLeft,
+    canUpgradeEarly,
     can,
     startTrial,
     startCheckout,

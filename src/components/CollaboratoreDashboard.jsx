@@ -11,6 +11,9 @@ import { useTheme, ThemeToggle, ThemePicker, ColorPickerDropdown } from "../cont
 import { MISSIONS_BY_LEVEL, LEVELS, TOTAL_WEEKS, getPhase } from "../data/missions";
 import RecoverySystem from "./RecoverySystem";
 import HomeDashboard from "./HomeDashboard";
+import OnboardingTour, { RestartTourButton } from "./OnboardingTour";
+import PWAInstallBanner from "./PWAInstallBanner";
+import { isInstalledPWA } from "../utils/pwa";
 import NotificationSettings from "./NotificationSettings";
 import PlansTab from "./PlansTab";
 import { setupFollowupScheduler, notifyWeeklyGoalReached } from "../utils/notifications";
@@ -82,6 +85,8 @@ export default function CollaboratoreDashboard() {
   const [copiedId, setCopiedId]     = useState(null);
   const [showRecovery, setShowRecovery]       = useState(false);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
+  const [pwaShowNow, setPwaShowNow]               = useState(false);
+  const [pwaInstalled, setPwaInstalled]           = useState(() => isInstalledPWA());
   const [nc, setNc] = useState({ name: "", type: "lead", status: "lead", channel: "", note: "" });
 
   // Mostra banner recovery se settimana >= 3 e 0 clienti
@@ -248,6 +253,19 @@ export default function CollaboratoreDashboard() {
       {showRecovery && <RecoverySystem onClose={() => setShowRecovery(false)} userProfile={userProfile} />}
       {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} />}
 
+      {/* ── ONBOARDING TOUR ── */}
+      <OnboardingTour
+        role="collaboratore"
+        hasBothRoles={dualRole.hasBothRoles}
+        onTabChange={setTab}
+        onCopyCode={() => {
+          if (userProfile?.inviteCode) {
+            navigator.clipboard?.writeText(userProfile.inviteCode);
+            fire("Codice copiato! 📋");
+          }
+        }}
+      />
+
       {/* Mission Modal */}
       {showMission && (
         <div onClick={() => setShowMission(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 100, display: "flex", alignItems: "flex-end" }}>
@@ -352,6 +370,17 @@ export default function CollaboratoreDashboard() {
           >
             {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
           </button>
+          <button
+            onClick={() => { if (!pwaInstalled) setPwaShowNow(true); }}
+            title={pwaInstalled ? "App già installata" : "Installa l'app"}
+            disabled={pwaInstalled}
+            style={{ background: "none", border: `1px solid ${T.border}`, color: pwaInstalled ? T.muted : T.text, borderRadius: 50, padding: "6px 8px", cursor: pwaInstalled ? "default" : "pointer", opacity: pwaInstalled ? 0.35 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="2" y1="14" x2="14" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
           <ColorPickerDropdown />
           <ThemeToggle />
           <button onClick={logout} style={{ background: "none", border: `1px solid ${T.border}`, color: T.muted, padding: "6px 10px", borderRadius: 50, fontSize: 12, fontFamily: "'DM Sans'", cursor: "pointer" }}>↩</button>
@@ -366,7 +395,7 @@ export default function CollaboratoreDashboard() {
             {userProfile?.inviteCode ? (
               <>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>
-                  Codice: <span style={{ letterSpacing: 2 }}>{userProfile.inviteCode}</span>
+                  <span id="tour-invite-code">Codice: <span style={{ letterSpacing: 2 }}>{userProfile.inviteCode}</span></span>
                 </div>
                 <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>
                   Condividilo e usa la tab 👑 <strong>Team</strong> per gestire il tuo sotto-team.
@@ -731,6 +760,17 @@ export default function CollaboratoreDashboard() {
               </div>
               <ThemePicker />
             </div>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 12 }}>
+                🎓 Tour Guidato
+              </div>
+              <RestartTourButton tourKey="collab" label="Rivedi il tour collaboratore" />
+              {dualRole.hasBothRoles && (
+                <div style={{ marginTop: 10 }}>
+                  <RestartTourButton tourKey="dual" label="Rivedi il tour team" />
+                </div>
+              )}
+            </div>
             <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 10 }}>
                 👤 Account
@@ -756,12 +796,13 @@ export default function CollaboratoreDashboard() {
           { id: "piani",       icon: "💎", label: "Piani" },
           { id: "impostazioni", icon: "⚙️", label: "Impost." },
         ].map(n => (
-          <div key={n.id} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
+          <div key={n.id} id={n.id === "script" ? "tour-scripts-tab" : n.id === "team" ? "tour-team-tab" : undefined} onClick={() => setTab(n.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0", cursor: "pointer", borderRadius: 10, background: tab === n.id ? T.accentBg : "none" }}>
             <span style={{ fontSize: 22 }}>{n.icon}</span>
             <span style={{ fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 600, color: tab === n.id ? T.accent : T.muted }}>{n.label}</span>
           </div>
         ))}
       </div>
+      <PWAInstallBanner forceShow={pwaShowNow} onShown={() => setPwaShowNow(false)} />
     </div>
   );
 }

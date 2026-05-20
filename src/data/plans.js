@@ -3,13 +3,20 @@
 
 // ── ID prezzi Stripe (sostituisci con i tuoi dopo la creazione su dashboard.stripe.com) ──
 export const STRIPE_PRICES = {
-  collaboratore_pro_monthly: "price_1TTNXeF3HfLtoUWm95wqQjb0",   // €9.99/mese
-  collaboratore_pro_yearly:  "price_1TTNYBF3HfLtoUWmwAL8ASlp",   // €89.99/anno (~25% sconto)
-  leader_pro_monthly:        "price_1TTNZwF3HfLtoUWmiiJX16Tq",   // €24.99/mese
-  leader_pro_yearly:         "price_1TTNaHF3HfLtoUWmkzJriJ32",   // €219.99/anno (~27% sconto)
+  collaboratore_pro_monthly: "price_1TW1IyF3HfLtoUWmI1fQAK2g",   // €4.90/mese (era €9.99)
+  collaboratore_pro_yearly:  "price_1TW1O4F3HfLtoUWmt5qzz8bO",   // €44.90/anno (era €89.99)
+  leader_pro_monthly:        "price_1TW1RXF3HfLtoUWmoOxBrDcY",   // €10.90/mese (era €24.99)
+  leader_pro_yearly:         "price_1TW1RqF3HfLtoUWmk9AfWUQW",   // €99.90/anno (era €219.99)
+  // ⚠️  RICORDA: aggiorna i prezzi anche su dashboard.stripe.com
+//  collaboratore_pro_monthly: "price_1TTNXeF3HfLtoUWm95wqQjb0",   // €9.99/mese 
+//  collaboratore_pro_yearly:  "price_1TTNYBF3HfLtoUWmwAL8ASlp",   // €89.99/anno 
+//  leader_pro_monthly:        "price_1TTNZwF3HfLtoUWmiiJX16Tq",   // €24.99/mese 
+//  leader_pro_yearly:         "price_1TTNaHF3HfLtoUWmkzJriJ32",   // €219.99/anno
+
 };
 
-export const TRIAL_DAYS = 14;
+export const TRIAL_DAYS         = 14;   // durata totale del trial
+export const TRIAL_UPGRADE_AFTER = 3;    // dopo quanti giorni appare il bottone acquisto
 
 // ── Definizione piani ──────────────────────────────────────────
 export const PLANS = {
@@ -57,10 +64,12 @@ export const PLANS = {
     id: "collaboratore_pro",
     name: "Collaboratore Pro",
     subtitle: "Il percorso completo",
-    price: { monthly: 9.99, yearly: 89.99 },
+    price:    { monthly: 4.90, yearly: 44.90 },
+    oldPrice: { monthly: 9.99, yearly: 89.99 },   // prezzo barrato
     badge: "Più popolare",
     color: "#B8860B",
     cta: "Prova 14 giorni gratis",
+    ctaAfterTrial: "Attiva ora — €4,90/mese →",
     target: "collaboratore",
     trial: true,
     stripe_monthly: "collaboratore_pro_monthly",
@@ -97,10 +106,12 @@ export const PLANS = {
     id: "leader_pro",
     name: "Leader Pro",
     subtitle: "Gestisci e scala il tuo team",
-    price: { monthly: 24.99, yearly: 219.99 },
+    price:    { monthly: 10.90, yearly: 99.90 },
+    oldPrice: { monthly: 24.99, yearly: 219.99 },
     badge: "Per i leader",
     color: "#1A5FA8",
     cta: "Prova 14 giorni gratis",
+    ctaAfterTrial: "Attiva ora — €10,90/mese →",
     target: "leader",
     trial: true,
     stripe_monthly: "leader_pro_monthly",

@@ -12,7 +12,7 @@ import { PLANS, trialDaysLeft, TRIAL_DAYS } from "../data/plans";
 export default function PlansTab() {
   const { T }                        = useTheme();
   const { userProfile }              = useAuth();
-  const { planId, isPro, onTrial, daysLeft, startCheckout } = usePlan();
+  const { planId, isPro, onTrial, daysLeft, canUpgradeEarly, startCheckout } = usePlan();
   const [billing, setBilling]        = useState("monthly");
   const [loadingPlan, setLoadingPlan] = useState(null);
 
@@ -65,16 +65,28 @@ export default function PlansTab() {
 
       {/* Trial banner */}
       {onTrial && (
-        <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ fontSize: 24 }}>⏰</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>
-              Trial Pro in corso — {daysLeft} giorni rimasti
-            </div>
-            <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, marginTop: 2 }}>
-              Stai usando tutte le funzionalità Pro. Abbonati prima della scadenza per non perdere l'accesso.
+        <div style={{ background: canUpgradeEarly ? T.accentBg : T.surface, border: `1px solid ${canUpgradeEarly ? T.accentBorder : T.border}`, borderRadius: 12, padding: "16px", marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: canUpgradeEarly ? 12 : 0 }}>
+            <span style={{ fontSize: 24 }}>⏰</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, fontFamily: "'DM Sans'" }}>
+                Trial Pro in corso — {daysLeft} giorni rimasti
+              </div>
+              <div style={{ fontSize: 12, fontFamily: "'DM Sans'", color: T.muted, marginTop: 2 }}>
+                {canUpgradeEarly
+                  ? "Hai provato il Pro per qualche giorno. Ti piace? Attivalo adesso a prezzo di lancio."
+                  : "Stai usando tutte le funzionalità Pro. Abbonati prima della scadenza."}
+              </div>
             </div>
           </div>
+          {canUpgradeEarly && (
+            <button
+              onClick={() => handleUpgrade(availablePlans.find(p => p.trial))}
+              style={{ width: "100%", background: T.accent, color: "#0a0a0f", border: "none", borderRadius: 50, padding: "12px 0", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+            >
+              🎁 Attiva ora al prezzo di lancio →
+            </button>
+          )}
         </div>
       )}
 
@@ -131,10 +143,22 @@ export default function PlansTab() {
                   <div style={{ fontSize: 22, fontWeight: 900, color: T.text }}>Gratis</div>
                 ) : (
                   <>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: plan.color }}>
-                      €{billing === "yearly" ? (price / 12).toFixed(2) : price}
-                      <span style={{ fontSize: 13, fontWeight: 400, color: T.muted }}>/mese</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                      {plan.oldPrice && (
+                        <span style={{ fontSize: 14, color: T.muted, textDecoration: "line-through", fontWeight: 400 }}>
+                          €{billing === "yearly" ? (plan.oldPrice.yearly / 12).toFixed(2) : plan.oldPrice.monthly}
+                        </span>
+                      )}
+                      <div style={{ fontSize: 26, fontWeight: 900, color: plan.color }}>
+                        €{billing === "yearly" ? (price / 12).toFixed(2) : price}
+                        <span style={{ fontSize: 13, fontWeight: 400, color: T.muted }}>/mese</span>
+                      </div>
                     </div>
+                    {plan.oldPrice && (
+                      <div style={{ fontSize: 11, color: T.green, fontFamily: "'DM Sans'", fontWeight: 700, marginTop: 2 }}>
+                        🎁 Prezzo di lancio — risparmia il {Math.round((1 - plan.price.monthly / plan.oldPrice.monthly) * 100)}%
+                      </div>
+                    )}
                     {billing === "yearly" && (
                       <div style={{ fontSize: 11, color: "#1A7A4A", fontFamily: "'DM Sans'", marginTop: 2 }}>
                         €{price}/anno · risparmi €{((plan.price.monthly * 12) - price).toFixed(0)}
