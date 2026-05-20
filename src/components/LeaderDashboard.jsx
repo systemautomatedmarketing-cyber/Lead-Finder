@@ -4,6 +4,9 @@ import WeeklyReport from "./WeeklyReport";
 import { PaywallModal } from "./PricingScreen";
 import LeaderMissions from "./LeaderMissions";
 import HomeLeader from "./HomeLeader";
+import OnboardingTour, { RestartTourButton } from "./OnboardingTour";
+import PWAInstallBanner from "./PWAInstallBanner";
+import { isInstalledPWA } from "../utils/pwa";
 import PlansTab from "./PlansTab";
 import UplineConnect from "./UplineConnect";
 import NotificationSettings from "./NotificationSettings";
@@ -53,6 +56,8 @@ export default function LeaderDashboard({ isEmbedded = false }) {
   const [showUplineConnect, setShowUplineConnect] = useState(false);
   const [showTeamPaywall, setShowTeamPaywall]     = useState(false);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
+  const [pwaShowNow, setPwaShowNow]               = useState(false);
+  const [pwaInstalled, setPwaInstalled]           = useState(() => isInstalledPWA());
   const [deepTeam, setDeepTeam]             = useState([]);
 
   const fire = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
@@ -71,6 +76,21 @@ export default function LeaderDashboard({ isEmbedded = false }) {
     });
     return unsub;
   }, [userProfile?.uid]);
+
+  // ── Scheduler notifiche follow-up ─────────────────────────
+{/*  useEffect(() => {
+    if (!contacts.length || !userProfile?.notificationsEnabled) return;
+    const cleanup = setupFollowupScheduler(
+      contacts,
+      userProfile?.name || "",
+      (dueContacts) => {
+        // Il banner nell'app è già gestito da leadsNeedingFollowup
+        // Qui gestiamo solo la notifica browser
+      }
+    );
+    return cleanup;
+  }, [contacts, userProfile?.notificationsEnabled]); */}
+	
 
   // ── Carica collaboratori di 2° livello ─────────────────────
   useEffect(() => {
@@ -163,7 +183,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
         <div style={{ background: T.accentBg, border: `1px solid ${T.accentBorder}`, borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 11, color: T.accent, fontFamily: "'DM Sans'", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Il tuo codice invito</div>
-            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: 3, color: T.accent }}>{userProfile?.inviteCode}</div>
+            <div id="tour-invite-code" style={{ fontSize: 22, fontWeight: 900, letterSpacing: 3, color: T.accent }}>{userProfile?.inviteCode}</div>
             <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans'", marginTop: 2 }}>Condividilo con i tuoi nuovi collaboratori</div>
           </div>
           <button onClick={copyInviteCode} style={{ background: T.accent, border: "none", color: "#0a0a0f", padding: "9px 16px", borderRadius: 50, fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
@@ -199,7 +219,7 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             { id: "piani",        label: "💎 Piani" },
             { id: "impostazioni", label: "⚙️ Impost." }, 
           ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+            <button key={t.id} id={t.id === "missioni" ? "tour-leader-missions-tab" : undefined} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? T.accent : T.surface, border: `1px solid ${tab === t.id ? T.accent : T.border}`, color: tab === t.id ? "#0a0a0f" : T.muted, padding: "7px 14px", borderRadius: 50, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
               {t.label}
             </button>
           ))}
@@ -376,6 +396,12 @@ export default function LeaderDashboard({ isEmbedded = false }) {
               </div>
               <ThemePicker />
             </div>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 12 }}>
+                🎓 Tour Guidato
+              </div>
+              <RestartTourButton tourKey="leader" label="Rivedi il tour leader" />
+            </div>
             <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'DM Sans'", marginBottom: 10 }}>
                 👤 Account
@@ -389,9 +415,10 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             </div>
           </div>
         )}
-      </div>
-);
+{/*      </div> */}
+
       {/* Bottom nav — solo in modalità standalone */}
+
       {!isEmbedded && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", backdropFilter: "blur(12px)" }}>
           <div style={{ fontFamily: "'DM Sans'", fontSize: 12, color: T.muted }}>Leader · {team.length} collaboratori</div>
@@ -400,8 +427,8 @@ export default function LeaderDashboard({ isEmbedded = false }) {
           </button>
         </div>
       )}
-//    </div>
-//  );
+    </div>
+  );
 
   // ── Modalità embedded: solo contenuto senza wrapper full-page ─
   if (isEmbedded) {
@@ -472,7 +499,18 @@ export default function LeaderDashboard({ isEmbedded = false }) {
       {showNotifSettings && (
         <NotificationSettings onClose={() => setShowNotifSettings(false)} />
       )}
-{console.log("showTeamPaywall = ", showTeamPaywall) }
+
+      {/* ── ONBOARDING TOUR ── */}
+      <OnboardingTour
+        role="leader"
+        hasBothRoles={false}
+        onTabChange={setTab}
+        onCopyCode={() => {
+          navigator.clipboard?.writeText(userProfile?.inviteCode || "");
+          fire("Codice copiato! 📋");
+        }}
+      />
+
       {showTeamPaywall && (
         <PaywallModal feature="team_size" onClose={() => setShowTeamPaywall(false)} />
       )}
@@ -501,6 +539,17 @@ export default function LeaderDashboard({ isEmbedded = false }) {
             style={{ background: userProfile?.notificationsEnabled ? T.accentBg : "none", border: `1px solid ${userProfile?.notificationsEnabled ? T.accentBorder : T.border}`, borderRadius: 50, padding: "6px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
           >
             {userProfile?.notificationsEnabled ? "🔔" : "🔕"}
+          </button>
+          <button
+            onClick={() => { if (!pwaInstalled) setPwaShowNow(true); }}
+            title={pwaInstalled ? "App già installata" : "Installa l'app"}
+            disabled={pwaInstalled}
+            style={{ background: "none", border: `1px solid ${T.border}`, color: pwaInstalled ? T.muted : T.text, borderRadius: 50, padding: "6px 8px", cursor: pwaInstalled ? "default" : "pointer", opacity: pwaInstalled ? 0.35 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="2" y1="14" x2="14" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </button>
           <ColorPickerDropdown />
           <ThemeToggle />
@@ -583,6 +632,9 @@ function MemberCard({ m, highlight, onUpdateLevel, fire, onPromote }) {
           <span style={{ fontSize: 11, fontFamily: "'DM Sans'", color: T.accent, fontWeight: 700 }}>👑 Già Leader</span>
         )}
       </div>
+{ console.log ("pwaShowNow: ", pwaShowNow) }
+
+      <PWAInstallBanner forceShow={pwaShowNow} onShown={() => setPwaShowNow(false)} />
     </div>
   );
 }
